@@ -1,34 +1,62 @@
-async function analyze() {
-  const coordsEl = document.getElementById("coords");
-  const altitudeEl = document.getElementById("altitude");
-  const weatherEl = document.getElementById("weather");
-  const resultEl = document.getElementById("result");
 
-  if (!navigator.geolocation) {
-    coordsEl.textContent = "Geolocalizzazione non supportata.";
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    const lat = pos.coords.latitude.toFixed(5);
-    const lon = pos.coords.longitude.toFixed(5);
-    coordsEl.textContent = `${lat}, ${lon}`;
-
-    // Chiamata API altitudine + meteo
-    const elevRes = await fetch(`/api/analyze?lat=${lat}&lon=${lon}`);
-    const elevData = await elevRes.json();
-    altitudeEl.textContent = elevData.altitude + " m";
-    weatherEl.textContent = elevData.weather;
-
-    // Analisi immagine simulata
+document.addEventListener("DOMContentLoaded", () => {
+    const locationElement = document.getElementById("location");
+    const altitudeElement = document.getElementById("altitude");
+    const weatherElement = document.getElementById("weather");
+    const analyzeButton = document.getElementById("analyze");
     const fileInput = document.getElementById("photo");
-    if (fileInput.files.length > 0) {
-      resultEl.textContent = "Analisi immagine in corso (simulata)...";
-      setTimeout(() => {
-        resultEl.textContent = "🌲 Probabilità funghi: Alta";
-      }, 2000);
-    } else {
-      resultEl.textContent = "Carica una foto per completare l’analisi.";
+
+    let lat = null;
+    let lon = null;
+
+    function updateStatus(el, text) {
+        el.textContent = text;
     }
-  });
-}
+
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                lat = position.coords.latitude;
+                lon = position.coords.longitude;
+                updateStatus(locationElement, `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`);
+            }, () => {
+                updateStatus(locationElement, "Errore nel rilevamento posizione");
+            });
+        } else {
+            updateStatus(locationElement, "Geolocalizzazione non supportata");
+        }
+    }
+
+    async function fetchData() {
+        if (!lat || !lon) {
+            alert("Posizione non disponibile");
+            return;
+        }
+
+        const formData = new FormData();
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Carica una foto del terreno");
+            return;
+        }
+        formData.append("photo", file);
+        formData.append("lat", lat);
+        formData.append("lon", lon);
+
+        try {
+            const res = await fetch("/api/analyze", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await res.json();
+            updateStatus(altitudeElement, `${data.altitude} m`);
+            updateStatus(weatherElement, `${data.weather.description}, ${data.weather.temp}°C`);
+        } catch (err) {
+            alert("Errore durante l'analisi");
+        }
+    }
+
+    getLocation();
+    analyzeButton.addEventListener("click", fetchData);
+});
