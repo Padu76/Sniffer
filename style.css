@@ -1,0 +1,22 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 1rem;
+  background: #f4f4f4;
+}
+h1 {
+  color: #4CAF50;
+}
+#output p {
+  background: #fff;
+  padding: 0.5rem;
+  border-radius: 5px;
+  margin-bottom: 0.5rem;
+}
+button {
+  padding: 0.6rem;
+  background: #4CAF50;
+  border: none;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
