@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fungo Radar</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>🍄 Fungo Radar</h1>
+  <div id="output">
+    <p><strong>📍 Posizione:</strong> <span id="coords">Caricamento...</span></p>
+    <p><strong>⛰️ Altitudine:</strong> <span id="altitude">–</span></p>
+    <p><strong>☁️ Meteo:</strong> <span id="weather">–</span></p>
+  </div>
+
+  <input type="file" id="photo" accept="image/*">
+  <button onclick="analyze()">🔍 Analizza</button>
+  <p id="result"></p>
+
+  <script src="script.js"></script>
+</body>
+</html>
