@@ -1,23 +1,27 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fungo Radar</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sniffer</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🍄 Fungo Radar</h1>
-  <div id="output">
-    <p><strong>📍 Posizione:</strong> <span id="coords">Caricamento...</span></p>
-    <p><strong>⛰️ Altitudine:</strong> <span id="altitude">–</span></p>
-    <p><strong>☁️ Meteo:</strong> <span id="weather">–</span></p>
+  <div class="container">
+    <h1>👃 Sniffer</h1>
+    <div class="info">
+      <p><strong>📍 Posizione:</strong> <span id="location">Caricamento...</span></p>
+      <p><strong>🏔️ Altitudine:</strong> <span id="elevation">–</span></p>
+      <p><strong>🌦️ Meteo:</strong> <span id="weather">–</span></p>
+    </div>
+    <input type="file" id="imageUpload" accept="image/*" />
+    <button id="analyzeBtn">🔍 Analizza</button>
+    <div class="result" id="resultSection" style="display:none;">
+      <h2>🧠 Analisi AI</h2>
+      <p id="aiPrediction">Caricamento...</p>
+    </div>
   </div>
-
-  <input type="file" id="photo" accept="image/*">
-  <button onclick="analyze()">🔍 Analizza</button>
-  <p id="result"></p>
-
   <script src="script.js"></script>
 </body>
 </html>
