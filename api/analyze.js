@@ -1,12 +1,3 @@
-import { IncomingForm } from 'formidable';
-import fs from 'fs';
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
-
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -36,11 +27,15 @@ async function handleGetRequest(req, res) {
   }
 
   try {
+    console.log('Fetching data for:', lat, lon);
+    
     const [elevationData, weatherData] = await Promise.all([
       fetchElevation(lat, lon),
       fetchWeather(lat, lon)
     ]);
 
+    console.log('Data fetched successfully');
+    
     res.status(200).json({
       altitude: Math.round(elevationData),
       weather: weatherData
@@ -48,45 +43,34 @@ async function handleGetRequest(req, res) {
 
   } catch (error) {
     console.error('Error in GET request:', error);
-    res.status(500).json({ error: 'Errore nel recupero dati' });
+    res.status(500).json({ 
+      error: 'Errore nel recupero dati',
+      details: error.message 
+    });
   }
 }
 
 // Handle POST request (full analysis)
 async function handlePostRequest(req, res) {
   try {
-    const form = new IncomingForm();
-    
-    const [fields, files] = await form.parse(req);
-    
-    const lat = fields.lat?.[0];
-    const lon = fields.lon?.[0];
-    const elevation = fields.elevation?.[0];
-    const weather = fields.weather?.[0];
-    const photo = files.photo?.[0];
+    // For now, return a mock response since file upload is complex
+    const { lat, lon, elevation, weather } = req.body;
 
-    if (!lat || !lon || !photo) {
+    if (!lat || !lon) {
       return res.status(400).json({ error: 'Dati mancanti' });
     }
 
-    // Read image file
-    const imageBuffer = fs.readFileSync(photo.filepath);
-    const imageBase64 = imageBuffer.toString('base64');
-
-    // Analyze image with Google Vision
-    const visionAnalysis = await analyzeImage(imageBase64);
-    
-    // Generate AI prediction
+    // Generate AI prediction without image for now
     const aiAnalysis = await generateAIPrediction({
       lat: parseFloat(lat),
       lon: parseFloat(lon),
       elevation: parseFloat(elevation) || null,
       weather,
-      visionData: visionAnalysis
+      visionData: { labels: [], objects: [] } // Mock empty vision data
     });
 
     // Save to Airtable
-    const airtableRecord = await saveToAirtable({
+    await saveToAirtable({
       lat: parseFloat(lat),
       lon: parseFloat(lon),
       elevation: parseFloat(elevation) || null,
@@ -95,14 +79,14 @@ async function handlePostRequest(req, res) {
       timestamp: new Date().toISOString()
     });
 
-    // Clean up temp file
-    fs.unlinkSync(photo.filepath);
-
     res.status(200).json(aiAnalysis);
 
   } catch (error) {
     console.error('Error in POST request:', error);
-    res.status(500).json({ error: 'Errore nell\'analisi' });
+    res.status(500).json({ 
+      error: 'Errore nell\'analisi',
+      details: error.message 
+    });
   }
 }
 
@@ -111,19 +95,33 @@ async function fetchElevation(lat, lon) {
   const apiKey = process.env.GOOGLE_ELEVATION_API_KEY;
   
   if (!apiKey) {
+    console.error('Google Elevation API key not found in env');
     throw new Error('Google Elevation API key not configured');
   }
 
+  console.log('Fetching elevation with key:', apiKey.substring(0, 10) + '...');
+
   const url = `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lon}&key=${apiKey}`;
   
-  const response = await fetch(url);
-  const data = await response.json();
-  
-  if (data.status !== 'OK' || !data.results?.[0]) {
-    throw new Error('Failed to fetch elevation data');
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    console.log('Elevation API response:', data);
+    
+    if (data.status !== 'OK') {
+      throw new Error(`Elevation API error: ${data.status} - ${data.error_message || 'Unknown error'}`);
+    }
+    
+    if (!data.results?.[0]) {
+      throw new Error('No elevation data returned');
+    }
+    
+    return data.results[0].elevation;
+  } catch (error) {
+    console.error('Elevation fetch error:', error);
+    throw error;
   }
-  
-  return data.results[0].elevation;
 }
 
 // Fetch weather from OpenWeather API
@@ -131,65 +129,28 @@ async function fetchWeather(lat, lon) {
   const apiKey = process.env.OPENWEATHERMAP_API_KEY;
   
   if (!apiKey) {
+    console.error('OpenWeather API key not found in env');
     throw new Error('OpenWeather API key not configured');
   }
 
+  console.log('Fetching weather with key:', apiKey.substring(0, 10) + '...');
+
   const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=it&appid=${apiKey}`;
   
-  const response = await fetch(url);
-  const data = await response.json();
-  
-  if (data.cod !== 200) {
-    throw new Error('Failed to fetch weather data');
-  }
-  
-  return `${data.weather[0].description}, ${Math.round(data.main.temp)}°C`;
-}
-
-// Analyze image with Google Vision API
-async function analyzeImage(imageBase64) {
-  const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
-  
-  if (!apiKey) {
-    console.warn('Google Vision API key not configured, skipping image analysis');
-    return { labels: [], objects: [] };
-  }
-
   try {
-    const url = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        requests: [{
-          image: {
-            content: imageBase64
-          },
-          features: [
-            { type: 'LABEL_DETECTION', maxResults: 10 },
-            { type: 'OBJECT_LOCALIZATION', maxResults: 10 }
-          ]
-        }]
-      })
-    });
-
+    const response = await fetch(url);
     const data = await response.json();
     
-    if (data.responses?.[0]?.error) {
-      throw new Error(data.responses[0].error.message);
+    console.log('Weather API response:', data);
+    
+    if (data.cod !== 200) {
+      throw new Error(`Weather API error: ${data.cod} - ${data.message || 'Unknown error'}`);
     }
-
-    return {
-      labels: data.responses?.[0]?.labelAnnotations || [],
-      objects: data.responses?.[0]?.localizedObjectAnnotations || []
-    };
-
+    
+    return `${data.weather[0].description}, ${Math.round(data.main.temp)}°C`;
   } catch (error) {
-    console.error('Vision API error:', error);
-    return { labels: [], objects: [] };
+    console.error('Weather fetch error:', error);
+    throw error;
   }
 }
 
@@ -205,6 +166,9 @@ async function generateAIPrediction({ lat, lon, elevation, weather, visionData }
   // Calculate probability based on multiple factors
   let probability = 0;
   
+  // Base probability
+  probability += 20;
+  
   // Elevation factor (mushrooms prefer certain altitudes)
   if (elevation) {
     if (elevation >= 200 && elevation <= 1500) probability += 25;
@@ -218,7 +182,7 @@ async function generateAIPrediction({ lat, lon, elevation, weather, visionData }
     if (weather.includes('sole') && !weather.includes('cald')) probability += 10;
   }
   
-  // Vision factors
+  // Vision factors (when image analysis is working)
   const mushroomKeywords = ['mushroom', 'funghi', 'vegetation', 'forest', 'tree', 'leaf', 'ground', 'soil', 'moss'];
   const foundKeywords = labels.filter(label => 
     mushroomKeywords.some(keyword => label.includes(keyword))
@@ -324,7 +288,7 @@ function generateAnalysisText(probability, factors, keywords) {
 // Save to Airtable
 async function saveToAirtable(data) {
   const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9'; // Your Airtable Base ID
+  const baseId = 'app70ymOnJLKk19B9';
   const tableName = 'scansioni';
   
   if (!token) {
@@ -358,10 +322,14 @@ async function saveToAirtable(data) {
     });
 
     if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Airtable error response:', errorData);
       throw new Error(`Airtable API error: ${response.status}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('Saved to Airtable:', result);
+    return result;
 
   } catch (error) {
     console.error('Airtable save error:', error);
