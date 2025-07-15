@@ -1,481 +1,559 @@
-document.addEventListener("DOMContentLoaded", () => {
-    // Elements
-    const locationElement = document.getElementById("location");
-    const elevationElement = document.getElementById("elevation");
-    const weatherElement = document.getElementById("weather");
-    const analyzeBtn = document.getElementById("analyzeBtn");
-    const imageUpload = document.getElementById("imageUpload");
-    const uploadArea = document.getElementById("uploadArea");
-    const imagePreview = document.getElementById("imagePreview");
-    const previewImg = document.getElementById("previewImg");
-    const removeImage = document.getElementById("removeImage");
-    const resultSection = document.getElementById("resultSection");
-    const scoreCircle = document.getElementById("scoreCircle");
-    const scoreValue = document.getElementById("scoreValue");
-    const aiPrediction = document.getElementById("aiPrediction");
-    const tempFactor = document.getElementById("tempFactor");
-    const humidityFactor = document.getElementById("humidityFactor");
-    const vegetationFactor = document.getElementById("vegetationFactor");
-    const newScanBtn = document.getElementById("newScanBtn");
-
-    // State
-    let currentLocation = null;
-    let currentWeather = null;
-    let currentElevation = null;
-    let selectedImage = null;
-    let selectedImageBase64 = null;
-    let currentScanId = null;
-    let currentAnalysis = null;
-
-    // Utility functions
-    function updateStatus(element, text, isError = false) {
-        element.textContent = text;
-        if (isError) {
-            element.style.color = '#ef4444';
-        } else {
-            element.style.color = '';
-        }
-    }
-
-    function showLoading(button) {
-        button.classList.add('loading');
-        button.querySelector('.loading-spinner').style.display = 'block';
-        button.disabled = true;
-    }
-
-    function hideLoading(button) {
-        button.classList.remove('loading');
-        button.querySelector('.loading-spinner').style.display = 'none';
-        button.disabled = false;
-    }
-
-    function updateAnalyzeButton() {
-        const hasLocation = currentLocation !== null;
-        
-        if (hasLocation) {
-            analyzeBtn.disabled = false;
-            analyzeBtn.style.opacity = '1';
-        } else {
-            analyzeBtn.disabled = true;
-            analyzeBtn.style.opacity = '0.6';
-        }
-    }
-
-    function getCurrentSearchTarget() {
-        return document.getElementById('searchTarget').value;
-    }
-
-    // Geolocation
-    function initGeolocation() {
-        updateStatus(locationElement, "Rilevamento in corso...");
-        
-        if (!navigator.geolocation) {
-            updateStatus(locationElement, "Geolocalizzazione non supportata", true);
-            return;
-        }
-
-        const options = {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000
+// Hardware Integration Layer for Sniffer
+class SnifferHardware {
+    constructor() {
+        this.device = null;
+        this.server = null;
+        this.service = null;
+        this.characteristics = {};
+        this.isConnected = false;
+        this.sensorData = {
+            odorIntensity: 0,
+            targetDetected: false,
+            direction: null,
+            confidence: 0,
+            batteryLevel: 100,
+            temperature: 0,
+            humidity: 0,
+            pressure: 0
         };
+        this.callbacks = {};
+        
+        // BME688 AI Configuration
+        this.aiModel = {
+            trainedTargets: [],
+            currentTarget: null,
+            trainingMode: false,
+            samples: []
+        };
+    }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                currentLocation = { lat, lon };
-                
-                updateStatus(locationElement, `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-                fetchElevationAndWeather(lat, lon);
-                updateAnalyzeButton();
-            },
-            (error) => {
-                let errorMsg = "Errore posizione";
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMsg = "Permesso negato";
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMsg = "Posizione non disponibile";
-                        break;
-                    case error.TIMEOUT:
-                        errorMsg = "Timeout rilevamento";
-                        break;
+    // Bluetooth Connection Management
+    async connect() {
+        try {
+            console.log('🔍 Scanning for Sniffer devices...');
+            
+            // Request Bluetooth device
+            this.device = await navigator.bluetooth.requestDevice({
+                filters: [
+                    { namePrefix: "Sniffer" },
+                    { services: ["12345678-1234-1234-1234-123456789abc"] }
+                ],
+                optionalServices: [
+                    "12345678-1234-1234-1234-123456789abc", // Sniffer Service
+                    "87654321-4321-4321-4321-cba987654321", // Calibration Service
+                    "battery_service"
+                ]
+            });
+
+            console.log('📡 Connecting to:', this.device.name);
+            
+            // Connect to GATT Server
+            this.server = await this.device.gatt.connect();
+            
+            // Get primary service
+            this.service = await this.server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
+            
+            // Setup characteristics
+            await this.setupCharacteristics();
+            
+            // Start data streaming
+            await this.startDataStream();
+            
+            this.isConnected = true;
+            this.updateConnectionStatus('connected');
+            
+            console.log('✅ Sniffer hardware connected successfully');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Connection failed:', error);
+            this.updateConnectionStatus('failed');
+            throw error;
+        }
+    }
+
+    async setupCharacteristics() {
+        try {
+            // Sensor Data Characteristic (Read/Notify)
+            this.characteristics.sensorData = await this.service.getCharacteristic("11111111-1111-1111-1111-111111111111");
+            
+            // Calibration Control (Write)
+            this.characteristics.calibration = await this.service.getCharacteristic("22222222-2222-2222-2222-222222222222");
+            
+            // Target Selection (Write)
+            this.characteristics.targetSelect = await this.service.getCharacteristic("33333333-3333-3333-3333-333333333333");
+            
+            // Alert Configuration (Write)
+            this.characteristics.alertConfig = await this.service.getCharacteristic("44444444-4444-4444-4444-444444444444");
+            
+            console.log('📊 Characteristics setup complete');
+            
+        } catch (error) {
+            console.error('❌ Characteristics setup failed:', error);
+            throw error;
+        }
+    }
+
+    async startDataStream() {
+        try {
+            // Enable notifications for sensor data
+            await this.characteristics.sensorData.startNotifications();
+            
+            // Listen for sensor data updates
+            this.characteristics.sensorData.addEventListener('characteristicvaluechanged', (event) => {
+                this.handleSensorData(event.target.value);
+            });
+            
+            console.log('📡 Data streaming started');
+            
+        } catch (error) {
+            console.error('❌ Data streaming failed:', error);
+            throw error;
+        }
+    }
+
+    handleSensorData(dataView) {
+        try {
+            // Parse BME688 data packet
+            // Format: [odorIntensity(2), targetDetected(1), direction(1), confidence(1), battery(1), temp(2), humidity(2), pressure(4)]
+            let offset = 0;
+            
+            this.sensorData.odorIntensity = dataView.getUint16(offset, true); offset += 2;
+            this.sensorData.targetDetected = dataView.getUint8(offset) === 1; offset += 1;
+            this.sensorData.direction = dataView.getUint8(offset); offset += 1; // 0-360 degrees
+            this.sensorData.confidence = dataView.getUint8(offset); offset += 1; // 0-100%
+            this.sensorData.batteryLevel = dataView.getUint8(offset); offset += 1;
+            this.sensorData.temperature = dataView.getInt16(offset, true) / 100; offset += 2; // Celsius * 100
+            this.sensorData.humidity = dataView.getUint16(offset, true) / 100; offset += 2; // % * 100
+            this.sensorData.pressure = dataView.getUint32(offset, true); offset += 4; // Pa
+            
+            // Update UI
+            this.updateSensorDisplay();
+            
+            // Trigger callbacks
+            if (this.callbacks.onDataUpdate) {
+                this.callbacks.onDataUpdate(this.sensorData);
+            }
+            
+            // Check for alerts
+            this.checkAlerts();
+            
+        } catch (error) {
+            console.error('❌ Data parsing error:', error);
+        }
+    }
+
+    // Target Training & Calibration
+    async startTraining(targetType) {
+        try {
+            console.log(`🎯 Starting training for: ${targetType}`);
+            
+            this.aiModel.currentTarget = targetType;
+            this.aiModel.trainingMode = true;
+            this.aiModel.samples = [];
+            
+            // Send training command to ESP32
+            const command = new TextEncoder().encode(`TRAIN_START:${targetType}`);
+            await this.characteristics.calibration.writeValue(command);
+            
+            this.updateTrainingStatus('training_started');
+            
+        } catch (error) {
+            console.error('❌ Training start failed:', error);
+            throw error;
+        }
+    }
+
+    async addTrainingSample() {
+        try {
+            if (!this.aiModel.trainingMode) {
+                throw new Error('Training mode not active');
+            }
+            
+            console.log('📊 Adding training sample...');
+            
+            // Send sample capture command
+            const command = new TextEncoder().encode('CAPTURE_SAMPLE');
+            await this.characteristics.calibration.writeValue(command);
+            
+            // Store sample locally
+            this.aiModel.samples.push({
+                timestamp: Date.now(),
+                intensity: this.sensorData.odorIntensity,
+                environmental: {
+                    temperature: this.sensorData.temperature,
+                    humidity: this.sensorData.humidity,
+                    pressure: this.sensorData.pressure
                 }
-                updateStatus(locationElement, errorMsg, true);
-            },
-            options
-        );
-    }
-
-    // Fetch elevation and weather data
-    async function fetchElevationAndWeather(lat, lon) {
-        try {
-            updateStatus(elevationElement, "Caricamento...");
-            updateStatus(weatherElement, "Caricamento...");
-
-            const response = await fetch(`/api/analyze?lat=${lat}&lon=${lon}`, {
-                method: 'GET'
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
             
-            currentElevation = data.altitude;
-            currentWeather = data.weather;
+            this.updateTrainingStatus(`sample_${this.aiModel.samples.length}`);
             
-            updateStatus(elevationElement, `${data.altitude} m`);
-            updateStatus(weatherElement, data.weather);
-
         } catch (error) {
-            console.error('Error fetching data:', error);
-            updateStatus(elevationElement, "Errore caricamento", true);
-            updateStatus(weatherElement, "Errore caricamento", true);
+            console.error('❌ Sample capture failed:', error);
+            throw error;
         }
     }
 
-    // Image handling
-    function setupImageUpload() {
-        uploadArea.addEventListener('click', () => {
-            if (!imagePreview.style.display || imagePreview.style.display === 'none') {
-                imageUpload.click();
-            }
-        });
-
-        imageUpload.addEventListener('change', handleImageSelect);
-
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].type.startsWith('image/')) {
-                imageUpload.files = files;
-                handleImageSelect();
-            }
-        });
-
-        removeImage.addEventListener('click', (e) => {
-            e.stopPropagation();
-            clearImage();
-        });
-    }
-
-    function handleImageSelect() {
-        const file = imageUpload.files[0];
-        if (!file) return;
-
-        if (!file.type.startsWith('image/')) {
-            alert('Seleziona un file immagine valido');
-            return;
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Il file è troppo grande. Massimo 5MB');
-            return;
-        }
-
-        selectedImage = file;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            previewImg.src = e.target.result;
-            imagePreview.style.display = 'block';
-            uploadArea.querySelector('.upload-content').style.display = 'none';
-            
-            selectedImageBase64 = e.target.result.split(',')[1];
-        };
-        reader.readAsDataURL(file);
-
-        updateAnalyzeButton();
-    }
-
-    function clearImage() {
-        selectedImage = null;
-        selectedImageBase64 = null;
-        imageUpload.value = '';
-        imagePreview.style.display = 'none';
-        uploadArea.querySelector('.upload-content').style.display = 'block';
-        updateAnalyzeButton();
-    }
-
-    // Analysis with Universal AI
-    async function performAnalysis() {
-        if (!currentLocation) {
-            alert('Assicurati di avere la posizione');
-            return;
-        }
-
-        const searchTarget = getCurrentSearchTarget();
-        showLoading(analyzeBtn);
-
+    async finishTraining() {
         try {
-            const analysisData = {
-                lat: currentLocation.lat,
-                lon: currentLocation.lon,
-                elevation: currentElevation || '',
-                weather: currentWeather || '',
-                image: selectedImageBase64 || null,
-                searchTarget: searchTarget // New field for target type
+            if (this.aiModel.samples.length < 5) {
+                throw new Error('Need at least 5 samples for training');
+            }
+            
+            console.log(`✅ Finishing training with ${this.aiModel.samples.length} samples`);
+            
+            // Send training complete command
+            const command = new TextEncoder().encode('TRAIN_COMPLETE');
+            await this.characteristics.calibration.writeValue(command);
+            
+            // Save to trained targets
+            this.aiModel.trainedTargets.push({
+                target: this.aiModel.currentTarget,
+                samples: this.aiModel.samples.length,
+                trainedAt: new Date().toISOString()
+            });
+            
+            // Reset training state
+            this.aiModel.trainingMode = false;
+            this.aiModel.currentTarget = null;
+            this.aiModel.samples = [];
+            
+            this.updateTrainingStatus('training_complete');
+            
+            // Save to localStorage for persistence
+            localStorage.setItem('snifferTrainedTargets', JSON.stringify(this.aiModel.trainedTargets));
+            
+        } catch (error) {
+            console.error('❌ Training completion failed:', error);
+            throw error;
+        }
+    }
+
+    // Target Selection & Detection
+    async selectTarget(targetType) {
+        try {
+            console.log(`🎯 Selecting target: ${targetType}`);
+            
+            // Check if target is trained
+            const trainedTarget = this.aiModel.trainedTargets.find(t => t.target === targetType);
+            if (!trainedTarget) {
+                throw new Error(`Target ${targetType} not trained yet`);
+            }
+            
+            // Send target selection to ESP32
+            const command = new TextEncoder().encode(`SELECT_TARGET:${targetType}`);
+            await this.characteristics.targetSelect.writeValue(command);
+            
+            this.aiModel.currentTarget = targetType;
+            this.updateTargetStatus(targetType);
+            
+        } catch (error) {
+            console.error('❌ Target selection failed:', error);
+            throw error;
+        }
+    }
+
+    // Alert Configuration
+    async configureAlerts(settings) {
+        try {
+            const config = {
+                intensityThreshold: settings.threshold || 70, // 0-100
+                enableVibration: settings.vibration || true,
+                enableSound: settings.sound || true,
+                alertDelay: settings.delay || 1000 // ms
             };
-
-            console.log('Sending to Universal AI...', {
-                hasImage: !!selectedImageBase64,
-                location: `${currentLocation.lat}, ${currentLocation.lon}`,
-                target: searchTarget
-            });
-
-            const response = await fetch('/api/analyze', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(analysisData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
             
-            console.log('Universal AI analysis result:', result);
+            // Send alert config to ESP32
+            const configBytes = new Uint8Array([
+                config.intensityThreshold,
+                config.enableVibration ? 1 : 0,
+                config.enableSound ? 1 : 0,
+                config.alertDelay & 0xFF,
+                (config.alertDelay >> 8) & 0xFF
+            ]);
             
-            currentAnalysis = result;
-            currentScanId = generateScanId();
+            await this.characteristics.alertConfig.writeValue(configBytes);
             
-            displayEnhancedResults(result, searchTarget);
-
+            console.log('🔔 Alert configuration updated:', config);
+            
         } catch (error) {
-            console.error('Analysis error:', error);
-            alert('Errore durante l\'analisi. Riprova.');
-        } finally {
-            hideLoading(analyzeBtn);
+            console.error('❌ Alert configuration failed:', error);
+            throw error;
         }
     }
 
-    function generateScanId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    // Direction Tracking
+    getDirection() {
+        if (this.sensorData.direction === null) return null;
+        
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const index = Math.round(this.sensorData.direction / 45) % 8;
+        return directions[index];
     }
 
-    function displayEnhancedResults(data, target) {
-        resultSection.style.display = 'block';
+    getDirectionArrow() {
+        if (this.sensorData.direction === null) return '🧭';
         
-        const score = data.probability || 0;
-        animateScore(score);
-        
-        // Update result badge based on target
-        const targetConfig = getTargetConfig(target);
-        document.getElementById('resultBadge').textContent = `Analisi ${targetConfig.name} Completata`;
-        
-        aiPrediction.innerHTML = `
-            <div class="claude-analysis">
-                <h4>🧠 Analisi AI Universale - ${targetConfig.name}</h4>
-                <p>${data.analysis || 'Analisi completata'}</p>
-                
-                ${data.recommendations ? `
-                    <h4>💡 Raccomandazioni per ${targetConfig.name}</h4>
-                    <p>${data.recommendations}</p>
-                ` : ''}
-                
-                ${data.species_likely ? `
-                    <h4>${targetConfig.icon} ${targetConfig.speciesLabel}</h4>
-                    <p>${data.species_likely}</p>
-                ` : ''}
-                
-                ${data.best_spots ? `
-                    <h4>📍 Zone Migliori</h4>
-                    <p>${data.best_spots}</p>
-                ` : ''}
-                
-                ${data.vision_insights ? `
-                    <h4>👁️ Analisi Visiva</h4>
-                    <p>${data.vision_insights}</p>
-                ` : ''}
-                
-                <div class="analysis-meta">
-                    <small>Target: ${targetConfig.name} | Confidenza: ${data.confidence || 'Media'} | 
-                    Metodo: ${data.analysisMethod || 'Hybrid'} | 
-                    Fonte: ${data.source || 'AI'}</small>
-                </div>
-            </div>
-            
-            <!-- FEEDBACK SECTION -->
-            <div class="feedback-section">
-                <h4>📊 Aiuta il Machine Learning!</h4>
-                <p>Dopo la ricerca di ${targetConfig.name.toLowerCase()}, facci sapere se hai trovato qualcosa:</p>
-                <div class="feedback-buttons">
-                    <button class="feedback-btn success" onclick="submitFeedback(true)">
-                        ✅ Ho trovato ${targetConfig.name.toLowerCase()}!
-                    </button>
-                    <button class="feedback-btn failure" onclick="submitFeedback(false)">
-                        ❌ Non ho trovato nulla
-                    </button>
-                </div>
-                <div class="feedback-status" id="feedbackStatus" style="display: none;"></div>
-            </div>
-        `;
-        
-        tempFactor.textContent = data.factors?.temperature || 'N/A';
-        humidityFactor.textContent = data.factors?.humidity || 'N/A';
-        vegetationFactor.textContent = data.factors?.vegetation || 'N/A';
-        
-        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const arrows = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+        const index = Math.round(this.sensorData.direction / 45) % 8;
+        return arrows[index];
     }
 
-    function getTargetConfig(target) {
-        const configs = {
-            funghi: { name: 'Funghi', icon: '🍄', speciesLabel: 'Specie Probabili' },
-            tartufi: { name: 'Tartufi', icon: '🟤', speciesLabel: 'Varietà Probabili' },
-            erbe: { name: 'Erbe Medicinali', icon: '🌿', speciesLabel: 'Erbe Identificate' },
-            custom: { name: 'Target Personalizzato', icon: '⚙️', speciesLabel: 'Elementi Rilevati' }
-        };
-        return configs[target] || configs.funghi;
-    }
-
-    // Enhanced Feedback System
-    window.submitFeedback = async function(found) {
-        if (!currentScanId || !currentAnalysis) {
-            alert('Errore: dati scansione non trovati');
-            return;
+    // UI Update Methods
+    updateConnectionStatus(status) {
+        const statusElement = document.getElementById('sensorStatusText');
+        const indicatorElement = document.getElementById('sensorIndicator');
+        const badgeElement = document.getElementById('hardwareBadge');
+        
+        switch (status) {
+            case 'connected':
+                if (statusElement) statusElement.textContent = 'Connessa';
+                if (indicatorElement) indicatorElement.className = 'sensor-indicator connected';
+                if (badgeElement) {
+                    badgeElement.textContent = 'Connessa';
+                    badgeElement.className = 'method-badge connected';
+                }
+                break;
+            case 'failed':
+                if (statusElement) statusElement.textContent = 'Errore Connessione';
+                if (indicatorElement) indicatorElement.className = 'sensor-indicator error';
+                break;
         }
+    }
 
-        const feedbackButtons = document.querySelectorAll('.feedback-btn');
-        const feedbackStatus = document.getElementById('feedbackStatus');
+    updateSensorDisplay() {
+        // Update sensor readings in UI
+        const readingElement = document.getElementById('sensorReading');
+        const gaugeValueElement = document.getElementById('gaugeValue');
+        const gaugeFillElement = document.getElementById('gaugeFill');
         
-        feedbackButtons.forEach(btn => {
-            btn.disabled = true;
-            btn.style.opacity = '0.6';
-        });
-
-        try {
-            const feedbackData = {
-                scanId: currentScanId,
-                found: found,
-                predicted: currentAnalysis.probability,
-                lat: currentLocation.lat,
-                lon: currentLocation.lon,
-                elevation: currentElevation,
-                weather: currentWeather,
-                analysis: currentAnalysis,
-                searchTarget: getCurrentSearchTarget(), // Include target type
-                timestamp: new Date().toISOString()
-            };
-
-            console.log('Submitting universal feedback:', feedbackData);
-
-            const response = await fetch('/api/feedback', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(feedbackData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            
-            const targetConfig = getTargetConfig(getCurrentSearchTarget());
-            feedbackStatus.style.display = 'block';
-            feedbackStatus.innerHTML = `
-                <div class="feedback-success">
-                    <span>🎯 Feedback per ${targetConfig.name} ricevuto! Grazie per aiutare l'AI a migliorare.</span>
-                    ${result.accuracy ? `<br><small>Accuracy zona: ${result.accuracy.toFixed(1)}%</small>` : ''}
-                </div>
-            `;
-            
-            feedbackButtons.forEach(btn => btn.style.display = 'none');
-
-        } catch (error) {
-            console.error('Feedback error:', error);
-            
-            feedbackStatus.style.display = 'block';
-            feedbackStatus.innerHTML = `
-                <div class="feedback-error">
-                    ❌ Errore nell'invio del feedback. Riprova.
-                </div>
-            `;
-            
-            feedbackButtons.forEach(btn => {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            });
+        if (readingElement) {
+            readingElement.textContent = `${this.sensorData.odorIntensity} ppm`;
         }
-    };
+        
+        if (gaugeValueElement) {
+            gaugeValueElement.textContent = this.sensorData.odorIntensity;
+        }
+        
+        if (gaugeFillElement) {
+            const percentage = Math.min((this.sensorData.odorIntensity / 1000) * 100, 100);
+            gaugeFillElement.style.width = percentage + '%';
+        }
+        
+        // Update direction indicator
+        this.updateDirectionDisplay();
+    }
 
-    function animateScore(targetScore) {
-        const duration = 1500;
-        const startTime = Date.now();
-        const startScore = 0;
+    updateDirectionDisplay() {
+        const directionElement = document.getElementById('directionIndicator');
+        if (directionElement) {
+            directionElement.textContent = this.getDirectionArrow();
+            directionElement.title = `Direction: ${this.getDirection()}`;
+        }
+    }
 
-        function update() {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            const easeOut = 1 - Math.pow(1 - progress, 3);
-            const currentScore = Math.round(startScore + (targetScore - startScore) * easeOut);
-            
-            scoreValue.textContent = currentScore;
-            scoreCircle.style.setProperty('--score', currentScore);
-            
-            let color = '#22c55e';
-            if (currentScore < 30) color = '#ef4444';
-            else if (currentScore < 60) color = '#f59e0b';
-            
-            scoreCircle.style.background = `conic-gradient(${color} 0deg, ${color} ${currentScore * 3.6}deg, #e5e7eb ${currentScore * 3.6}deg)`;
-            
-            if (progress < 1) {
-                requestAnimationFrame(update);
+    updateTrainingStatus(status) {
+        const statusElement = document.getElementById('calibrationStatus');
+        if (statusElement) {
+            switch (status) {
+                case 'training_started':
+                    statusElement.textContent = 'Training Avviato 🎯';
+                    break;
+                case 'training_complete':
+                    statusElement.textContent = 'Training Completato ✅';
+                    break;
+                default:
+                    if (status.startsWith('sample_')) {
+                        const count = status.split('_')[1];
+                        statusElement.textContent = `Campioni: ${count}/10`;
+                    }
             }
         }
-        
-        update();
     }
 
-    function resetApp() {
-        resultSection.style.display = 'none';
-        clearImage();
-        scoreValue.textContent = '--';
-        scoreCircle.style.setProperty('--score', 0);
-        
-        currentScanId = null;
-        currentAnalysis = null;
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateTargetStatus(target) {
+        const targetElement = document.getElementById('currentTarget');
+        if (targetElement) {
+            targetElement.textContent = target;
+        }
     }
 
-    // Event listeners
-    analyzeBtn.addEventListener('click', performAnalysis);
-    newScanBtn.addEventListener('click', resetApp);
-
-    // Initialize
-    initGeolocation();
-    setupImageUpload();
-    updateAnalyzeButton();
-
-    // Service worker registration
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(() => {
-                // Silent fail
-            });
-        });
+    checkAlerts() {
+        if (this.sensorData.targetDetected && this.sensorData.confidence > 70) {
+            this.triggerAlert();
+        }
     }
+
+    triggerAlert() {
+        // Visual alert
+        document.body.style.backgroundColor = '#dcfce7';
+        setTimeout(() => {
+            document.body.style.backgroundColor = '';
+        }, 1000);
+        
+        // Haptic feedback
+        if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200]);
+        }
+        
+        // Audio alert
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.3);
+        
+        // Callback
+        if (this.callbacks.onTargetDetected) {
+            this.callbacks.onTargetDetected(this.sensorData);
+        }
+    }
+
+    // Event Callbacks
+    onDataUpdate(callback) {
+        this.callbacks.onDataUpdate = callback;
+    }
+
+    onTargetDetected(callback) {
+        this.callbacks.onTargetDetected = callback;
+    }
+
+    // Utility Methods
+    isTargetTrained(target) {
+        return this.aiModel.trainedTargets.some(t => t.target === target);
+    }
+
+    getTrainedTargets() {
+        return this.aiModel.trainedTargets;
+    }
+
+    getBatteryLevel() {
+        return this.sensorData.batteryLevel;
+    }
+
+    disconnect() {
+        if (this.device && this.device.gatt.connected) {
+            this.device.gatt.disconnect();
+            this.isConnected = false;
+            this.updateConnectionStatus('disconnected');
+        }
+    }
+}
+
+// Global hardware instance
+window.snifferHardware = new SnifferHardware();
+
+// Integration with existing app
+document.addEventListener('DOMContentLoaded', () => {
+    // Load trained targets from localStorage
+    const saved = localStorage.getItem('snifferTrainedTargets');
+    if (saved) {
+        window.snifferHardware.aiModel.trainedTargets = JSON.parse(saved);
+    }
+    
+    // Setup hardware event listeners
+    window.snifferHardware.onDataUpdate((data) => {
+        console.log('📊 Sensor update:', data);
+        // Update any UI elements that need real-time data
+    });
+    
+    window.snifferHardware.onTargetDetected((data) => {
+        console.log('🎯 Target detected!', data);
+        // Show detection notification
+        showDetectionAlert(data);
+    });
 });
+
+// Enhanced connect sensor function
+async function connectSensor() {
+    try {
+        await window.snifferHardware.connect();
+        
+        // Update UI to show hardware controls
+        document.getElementById('sensorControls').style.display = 'block';
+        document.getElementById('sensorActions').style.display = 'none';
+        document.getElementById('analyzeHardwareBtn').disabled = false;
+        
+        // Enable hardware method card
+        document.getElementById('hardwareMethodCard').classList.add('connected');
+        
+    } catch (error) {
+        alert('❌ Connessione fallita: ' + error.message);
+    }
+}
+
+// Enhanced calibration function
+async function calibrateSensor() {
+    const target = document.getElementById('searchTarget').value;
+    
+    try {
+        if (window.snifferHardware.isTargetTrained(target)) {
+            // Target already trained, just select it
+            await window.snifferHardware.selectTarget(target);
+            alert(`✅ Target ${target} selezionato`);
+        } else {
+            // Start training process
+            await startTrainingProcess(target);
+        }
+        
+    } catch (error) {
+        alert('❌ Calibrazione fallita: ' + error.message);
+    }
+}
+
+async function startTrainingProcess(target) {
+    const confirmed = confirm(`🎯 Iniziare training per ${target}?\n\nAvrai bisogno di 5-10 campioni del target.`);
+    if (!confirmed) return;
+    
+    try {
+        await window.snifferHardware.startTraining(target);
+        
+        // Show training UI
+        showTrainingInterface(target);
+        
+    } catch (error) {
+        throw error;
+    }
+}
+
+function showTrainingInterface(target) {
+    const modal = document.createElement('div');
+    modal.className = 'training-modal';
+    modal.innerHTML = `
+        <div class="training-content">
+            <h3>🎯 Training ${target}</h3>
+            <p>Posiziona la sonda vicino al campione di ${target} e premi "Campiona"</p>
+            <div class="training-progress">
+                <span id="trainingProgress">0/10 campioni</span>
+            </div>
+            <div class="training-actions">
+                <button onclick="addSample()">📊 Campiona</button>
+                <button onclick="finishTraining()">✅ Completa</button>
+                <button onclick="cancelTraining()">❌ Annulla</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function showDetectionAlert(data) {
+    const alert = document.createElement('div');
+    alert.className = 'detection-alert';
+    alert.innerHTML = `
+        <div class="alert-content">
+            <h3>🎯 Target Rilevato!</h3>
+            <p>Intensità: ${data.odorIntensity} ppm</p>
+            <p>Confidenza: ${data.confidence}%</p>
+            <p>Direzione: ${window.snifferHardware.getDirectionArrow()}</p>
+        </div>
+    `;
+    
+    document.body.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
