@@ -19,7 +19,7 @@
           <h1>Sniffer</h1>
         </div>
         <nav class="nav">
-          <a href="/dashboard.html" class="nav-link">
+          <a href="/dashboard.html" class="nav-link" title="Dashboard Analytics">
             <span class="nav-icon">📊</span>
           </a>
         </nav>
@@ -159,7 +159,7 @@
           </div>
 
           <!-- Hardware Method -->
-          <div class="workflow-card hardware-method" id="hardwareMethodCard">
+          <div class="workflow-card hardware-method" id="hardwareMethodCard" style="display: none;">
             <div class="method-header">
               <span class="method-icon">🔬</span>
               <h4>Rilevamento Hardware</h4>
@@ -270,224 +270,14 @@
     <div class="container">
       <div class="footer-content">
         <span>Made with 👃 by Sniffer Team</span>
-        <a href="#" onclick="showInfo()">ℹ️ Info</a>
+        <div class="footer-links">
+          <a href="/dashboard.html">📊 Analytics</a>
+          <a href="#" onclick="showInfo()">ℹ️ Info</a>
+        </div>
       </div>
     </div>
   </footer>
 
   <script src="script.js"></script>
-  
-  <script>
-    // Search target configurations
-    const searchTargets = {
-      funghi: {
-        icon: '🍄',
-        title: 'Modalità Funghi',
-        tips: 'Cerca in zone umide, vicino a querce e castagni'
-      },
-      tartufi: {
-        icon: '🟤',
-        title: 'Modalità Tartufi', 
-        tips: 'Cerca vicino a querce, noccioli e tigli, in terreni calcarei'
-      },
-      erbe: {
-        icon: '🌿',
-        title: 'Modalità Erbe',
-        tips: 'Cerca in prati, radure e margini boschivi non inquinati'
-      },
-      custom: {
-        icon: '⚙️',
-        title: 'Modalità Personalizzata',
-        tips: 'Usa sensori calibrati per il tuo target specifico'
-      }
-    };
-
-    let currentTarget = 'funghi';
-    let sensorConnected = false;
-    let selectedImage = null;
-
-    // Update search mode
-    function updateSearchMode() {
-      const target = document.getElementById('searchTarget').value;
-      currentTarget = target;
-      const config = searchTargets[target];
-      
-      // Update mode banner
-      document.getElementById('modeIcon').textContent = config.icon;
-      document.getElementById('modeTitle').textContent = config.title;
-      document.getElementById('modeTips').textContent = config.tips;
-      
-      // Update calibration target
-      document.getElementById('calibrateTarget').textContent = target;
-      document.getElementById('calibrationTarget').textContent = target;
-      
-      // Show/hide hardware method based on target
-      const hardwareCard = document.getElementById('hardwareMethodCard');
-      if (target === 'custom') {
-        hardwareCard.style.display = 'block';
-        document.getElementById('sensorCalibrationPanel').style.display = 'block';
-      } else {
-        hardwareCard.style.display = 'none';
-        document.getElementById('sensorCalibrationPanel').style.display = 'none';
-      }
-    }
-
-    // Quick scan functions
-    function quickScanPhoto() {
-      selectPhoto();
-      setTimeout(() => {
-        if (selectedImage) {
-          analyzeWithAI();
-        }
-      }, 100);
-    }
-
-    function scrollToAdvanced() {
-      document.querySelector('.workflow-section').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }
-
-    // Photo handling
-    function selectPhoto() {
-      document.getElementById('imageUpload').click();
-    }
-
-    function removePhoto() {
-      selectedImage = null;
-      document.getElementById('photoPreview').style.display = 'none';
-      document.getElementById('photoUploadArea').querySelector('.upload-zone').style.display = 'block';
-      updateAnalyzeButton();
-    }
-
-    function updateAnalyzeButton() {
-      const btn = document.getElementById('analyzeAIBtn');
-      if (selectedImage && window.currentLocation) {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-      } else {
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-      }
-    }
-
-    // Sensor functions
-    function connectSensor() {
-      // Simulate sensor connection
-      sensorConnected = true;
-      document.getElementById('sensorStatusText').textContent = 'Connessa';
-      document.getElementById('sensorIndicator').className = 'sensor-indicator connected';
-      document.getElementById('hardwareBadge').textContent = 'Connessa';
-      document.getElementById('hardwareBadge').className = 'method-badge connected';
-      document.getElementById('sensorControls').style.display = 'block';
-      document.getElementById('sensorActions').style.display = 'none';
-      document.getElementById('analyzeHardwareBtn').disabled = false;
-      
-      // Start mock sensor readings
-      startMockSensorReadings();
-    }
-
-    function startMockSensorReadings() {
-      setInterval(() => {
-        if (sensorConnected) {
-          const reading = Math.round(Math.random() * 100);
-          document.getElementById('sensorReading').textContent = reading + ' ppm';
-          document.getElementById('gaugeValue').textContent = reading;
-          document.getElementById('gaugeFill').style.width = Math.min(reading, 100) + '%';
-        }
-      }, 2000);
-    }
-
-    function calibrateSensor() {
-      alert(`🔬 Calibrazione per ${currentTarget} avviata. Posiziona la sonda nel campione di riferimento.`);
-      document.getElementById('calibrationStatus').textContent = 'Calibrando...';
-      setTimeout(() => {
-        document.getElementById('calibrationStatus').textContent = 'Calibrato ✅';
-      }, 3000);
-    }
-
-    function startCalibration() {
-      calibrateSensor();
-    }
-
-    // Analysis functions
-    function analyzeWithAI() {
-      if (!selectedImage || !window.currentLocation) {
-        alert('Assicurati di avere foto e posizione');
-        return;
-      }
-      
-      document.getElementById('resultMethod').textContent = 'AI Vision';
-      // Call existing analysis function from script.js
-      if (window.performAnalysis) {
-        window.performAnalysis();
-      }
-    }
-
-    function analyzeWithHardware() {
-      if (!sensorConnected) {
-        alert('Connetti prima la sonda hardware');
-        return;
-      }
-      
-      document.getElementById('resultMethod').textContent = 'Hardware Sensing';
-      // Simulate hardware analysis
-      simulateHardwareAnalysis();
-    }
-
-    function simulateHardwareAnalysis() {
-      document.getElementById('resultSection').style.display = 'block';
-      
-      // Mock hardware results
-      const probability = Math.round(Math.random() * 100);
-      document.getElementById('scoreValue').textContent = probability;
-      document.getElementById('scoreLabel').textContent = `Concentrazione ${currentTarget}`;
-      
-      document.getElementById('aiPrediction').innerHTML = `
-        <h4>🔬 Analisi Sensori Hardware</h4>
-        <p>Rilevata concentrazione significativa di composti organici volatili tipici di ${currentTarget}.</p>
-        <p><strong>Lettura sensore:</strong> ${document.getElementById('sensorReading').textContent}</p>
-      `;
-      
-      document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function newScan() {
-      document.getElementById('resultSection').style.display = 'none';
-      removePhoto();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function showInfo() {
-      alert('👃 Sniffer è una piattaforma universale di rilevamento che combina AI vision e sensori hardware per trovare tesori nascosti in natura.');
-    }
-
-    // Image upload handler
-    document.getElementById('imageUpload').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        selectedImage = file;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById('previewImage').src = e.target.result;
-          document.getElementById('photoPreview').style.display = 'block';
-          document.getElementById('photoUploadArea').querySelector('.upload-zone').style.display = 'none';
-          updateAnalyzeButton();
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-      updateSearchMode();
-      
-      // Load stats
-      if (window.loadHeroStats) {
-        window.loadHeroStats();
-      }
-    });
-  </script>
 </body>
 </html>
