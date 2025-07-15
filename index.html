@@ -1,283 +1,301 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>👃 Sniffer - Rilevatore Intelligente Universale</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sniffer - Rilevatore Intelligente</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Header compatto -->
-  <header class="header-compact">
+    <!-- Header Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="nav-logo">🔬</span>
+                <span class="nav-title">Sniffer</span>
+            </div>
+            <div class="nav-links">
+                <a href="training.html" class="nav-link">🎯 Training</a>
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
-      <div class="header-content">
-        <div class="logo-compact">
-          <span class="logo-icon">👃</span>
-          <h1>Sniffer</h1>
-        </div>
-        <nav class="nav">
-          <a href="/dashboard.html" class="nav-link" title="Dashboard Analytics">
-            <span class="nav-icon">📊</span>
-          </a>
-        </nav>
-      </div>
-    </div>
-  </header>
-
-  <!-- Hero Section Compatto -->
-  <div class="hero-compact">
-    <div class="container">
-      <div class="hero-grid">
-        <!-- Left: Main Content -->
-        <div class="hero-main">
-          <h2 class="hero-title">Rilevatore Intelligente</h2>
-          <p class="hero-subtitle">Trova tesori nascosti con AI, sensori e machine learning</p>
-          
-          <!-- Target Selector Inline -->
-          <div class="target-selector-inline">
-            <label for="searchTarget">🎯 Cosa cerchi?</label>
-            <select id="searchTarget" onchange="updateSearchMode()">
-              <option value="funghi">🍄 Funghi</option>
-              <option value="tartufi">🟤 Tartufi</option>
-              <option value="erbe">🌿 Erbe Medicinali</option>
-              <option value="custom">⚙️ Personalizzato</option>
-            </select>
-          </div>
-          
-          <!-- Quick Actions -->
-          <div class="quick-actions">
-            <button class="quick-btn primary" onclick="quickScanPhoto()">
-              <span class="btn-icon">📷</span>
-              <span>Scan Rapido</span>
-            </button>
-            <button class="quick-btn secondary" onclick="scrollToAdvanced()">
-              <span class="btn-icon">🔬</span>
-              <span>Avanzato</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Right: Stats + Sensor Widget -->
-        <div class="hero-side">
-          <!-- Stats Compatte -->
-          <div class="stats-compact">
-            <div class="stat-mini">
-              <span class="stat-number" id="heroTotalScans">127</span>
-              <span class="stat-text">Rilevamenti</span>
-            </div>
-            <div class="stat-mini">
-              <span class="stat-number" id="heroAccuracy">89%</span>
-              <span class="stat-text">Accuracy</span>
-            </div>
-            <div class="stat-mini">
-              <span class="stat-number" id="heroSuccess">71%</span>
-              <span class="stat-text">Successi</span>
-            </div>
-          </div>
-
-          <!-- Sensor Widget Sempre Visibile -->
-          <div class="sensor-widget" id="sensorWidget">
-            <div class="sensor-header">
-              <span class="sensor-icon" id="sensorIcon">📡</span>
-              <div class="sensor-info">
-                <span class="sensor-title">Sonda Hardware</span>
-                <span class="sensor-status" id="sensorStatusText">Non Connessa</span>
-              </div>
-              <div class="sensor-indicator" id="sensorIndicator"></div>
-            </div>
-            
-            <div class="sensor-actions" id="sensorActions">
-              <button class="sensor-btn" id="connectSensorBtn" onclick="connectSensor()">
-                Connetti
-              </button>
-            </div>
-            
-            <!-- Sensor Controls (quando connesso) -->
-            <div class="sensor-controls" id="sensorControls" style="display: none;">
-              <div class="sensor-reading">
-                <span class="reading-label">Segnale:</span>
-                <span class="reading-value" id="sensorReading">-- ppm</span>
-              </div>
-              <button class="calibrate-btn" onclick="calibrateSensor()">
-                🎯 Calibra per <span id="calibrateTarget">Funghi</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main App - Layout Migliorato -->
-  <div class="app-container">
-    <div class="container">
-      
-      <!-- Mode Info Compatta -->
-      <div class="mode-banner" id="modeBanner">
-        <div class="mode-content">
-          <span class="mode-icon" id="modeIcon">🍄</span>
-          <div class="mode-text">
-            <strong id="modeTitle">Modalità Funghi</strong>
-            <span id="modeTips">Cerca in zone umide, vicino a querce e castagni</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Workflow Cards -->
-      <div class="workflow-section">
-        <h3>🎯 Scegli il Metodo di Rilevamento</h3>
-        
-        <div class="workflow-grid">
-          <!-- AI Vision Method -->
-          <div class="workflow-card ai-method" id="aiMethodCard">
-            <div class="method-header">
-              <span class="method-icon">👁️</span>
-              <h4>Analisi AI Visiva</h4>
-              <span class="method-badge">Sempre Disponibile</span>
-            </div>
-            <p class="method-description">Usa foto del terreno + intelligenza artificiale ibrida (Google Vision + Claude AI)</p>
-            
-            <!-- Photo Upload Compatto -->
-            <div class="photo-upload-compact" id="photoUploadArea">
-              <input type="file" id="imageUpload" accept="image/*" capture="environment" hidden>
-              <div class="upload-zone" onclick="selectPhoto()">
-                <div class="upload-icon">📷</div>
-                <span class="upload-text">Aggiungi Foto</span>
-              </div>
-              <div class="photo-preview" id="photoPreview" style="display: none;">
-                <img id="previewImage" alt="Preview">
-                <button class="remove-photo" onclick="removePhoto()">✕</button>
-              </div>
-            </div>
-            
-            <button class="method-btn ai-btn" id="analyzeAIBtn" onclick="analyzeWithAI()">
-              <span>🧠 Analizza con AI</span>
-            </button>
-          </div>
-
-          <!-- Hardware Method -->
-          <div class="workflow-card hardware-method" id="hardwareMethodCard" style="display: none;">
-            <div class="method-header">
-              <span class="method-icon">🔬</span>
-              <h4>Rilevamento Hardware</h4>
-              <span class="method-badge hardware-status" id="hardwareBadge">Sonda Richiesta</span>
-            </div>
-            <p class="method-description">Usa sensori olfattivi calibrati per rilevamento chimico diretto</p>
-            
-            <!-- Hardware Controls -->
-            <div class="hardware-controls" id="hardwareControls">
-              <div class="sensor-reading-display">
-                <div class="reading-gauge">
-                  <div class="gauge-fill" id="gaugeFill"></div>
-                  <span class="gauge-value" id="gaugeValue">0</span>
+        <!-- Hero Section -->
+        <div class="hero">
+            <div class="hero-content">
+                <div class="hero-main">
+                    <div class="hero-badge">
+                        <span class="target-mode" id="targetMode">🍄 Modalità: Funghi</span>
+                    </div>
+                    <h1 class="hero-title">
+                        Rilevatore <span class="gradient-text">Intelligente</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        AI ibrida + sensori olfattivi per rilevamento avanzato
+                    </p>
+                    
+                    <!-- Quick Actions -->
+                    <div class="hero-actions">
+                        <button class="btn btn-primary" id="quickScanBtn">
+                            📷 Scan Rapido
+                        </button>
+                        <button class="btn btn-secondary" id="advancedScanBtn">
+                            🔬 Scan Avanzato
+                        </button>
+                    </div>
                 </div>
-                <span class="reading-unit">ppm</span>
-              </div>
-              
-              <div class="sensor-calibration" id="sensorCalibrationPanel" style="display: none;">
-                <p>🎯 Calibra sensore per <strong id="calibrationTarget">funghi</strong></p>
-                <div class="calibration-steps">
-                  <button class="cal-btn" onclick="startCalibration()">Inizia Calibrazione</button>
-                  <span class="cal-status" id="calibrationStatus">Pronto</span>
+
+                <!-- Hero Stats -->
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalScans">--</div>
+                        <div class="stat-label">Scansioni</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="successRate">--</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="activeZones">--</div>
+                        <div class="stat-label">Zone Attive</div>
+                    </div>
                 </div>
-              </div>
+            </div>
+
+            <!-- Sensor Widget -->
+            <div class="sensor-widget">
+                <div class="sensor-header">
+                    <span class="sensor-icon">🔬</span>
+                    <span class="sensor-title">Sonda BME688</span>
+                    <span class="sensor-status" id="sensorStatus">Disconnessa</span>
+                </div>
+                <div class="sensor-reading" id="sensorReading">
+                    <div class="reading-value">--</div>
+                    <div class="reading-unit">ppm</div>
+                </div>
+                <div class="sensor-led" id="sensorLed"></div>
+            </div>
+        </div>
+
+        <!-- Target Selection -->
+        <div class="target-section">
+            <h2 class="section-title">🎯 Cosa Cerchi?</h2>
+            <div class="target-grid">
+                <div class="target-card active" data-target="funghi">
+                    <div class="target-icon">🍄</div>
+                    <div class="target-info">
+                        <h3>Funghi</h3>
+                        <p>Porcini, finferli, chiodini</p>
+                        <span class="target-badge">Analisi Visiva</span>
+                    </div>
+                </div>
+                
+                <div class="target-card" data-target="tartufi">
+                    <div class="target-icon">⚫</div>
+                    <div class="target-info">
+                        <h3>Tartufi</h3>
+                        <p>Bianchi, neri, scorzone</p>
+                        <span class="target-badge">Sonda Richiesta</span>
+                    </div>
+                </div>
+                
+                <div class="target-card" data-target="erbe">
+                    <div class="target-icon">🌿</div>
+                    <div class="target-info">
+                        <h3>Erbe Medicinali</h3>
+                        <p>Spontanee commestibili</p>
+                        <span class="target-badge">Analisi Visiva</span>
+                    </div>
+                </div>
+                
+                <div class="target-card" data-target="custom">
+                    <div class="target-icon">⚙️</div>
+                    <div class="target-info">
+                        <h3>Rilevamento Custom</h3>
+                        <p>Odore personalizzato</p>
+                        <span class="target-badge">Sonda Richiesta</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Method -->
+        <div class="method-section">
+            <div class="method-tabs">
+                <button class="method-tab active" data-method="ai">
+                    🧠 Analisi AI Visiva
+                </button>
+                <button class="method-tab" data-method="hardware" id="hardwareTab">
+                    🔬 Rilevamento Hardware
+                </button>
+            </div>
+
+            <!-- AI Visual Analysis -->
+            <div class="method-content active" id="ai-method">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📷</div>
+                        <h3>Scatta o Carica Foto del Terreno</h3>
+                        <p>Drag & drop o clicca per selezionare</p>
+                        <div class="upload-buttons">
+                            <button class="btn btn-primary" id="cameraBtn">
+                                📷 Scatta Foto
+                            </button>
+                            <button class="btn btn-secondary" id="galleryBtn">
+                                🖼️ Dalla Galleria
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+                
+                <div class="photo-preview" id="photoPreview" style="display: none;">
+                    <img id="previewImage" alt="Preview">
+                    <div class="preview-actions">
+                        <button class="btn-icon" id="removePhoto" title="Rimuovi">❌</button>
+                        <button class="btn-icon" id="retakePhoto" title="Rifai">🔄</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hardware Sensing -->
+            <div class="method-content" id="hardware-method">
+                <div class="hardware-status">
+                    <div class="hardware-card">
+                        <div class="hardware-icon">🔬</div>
+                        <h3>Sensori Hardware</h3>
+                        <p>Rilevamento chimico diretto tramite sonda BME688</p>
+                        <div class="hardware-actions">
+                            <button class="btn btn-primary" id="connectHardwareBtn">
+                                📡 Connetti Sonda
+                            </button>
+                            <button class="btn btn-secondary" id="calibrateBtn" disabled>
+                                ⚙️ Calibra
+                            </button>
+                        </div>
+                        <div class="hardware-readings" id="hardwareReadings" style="display: none;">
+                            <div class="reading-grid">
+                                <div class="reading-item">
+                                    <span class="reading-label">VOC:</span>
+                                    <span class="reading-value" id="vocReading">--</span>
+                                </div>
+                                <div class="reading-item">
+                                    <span class="reading-label">Gas:</span>
+                                    <span class="reading-value" id="gasReading">--</span>
+                                </div>
+                                <div class="reading-item">
+                                    <span class="reading-label">Temp:</span>
+                                    <span class="reading-value" id="tempReading">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Environmental Status -->
+        <div class="env-status">
+            <div class="env-grid">
+                <div class="env-card">
+                    <div class="env-icon">📍</div>
+                    <div class="env-info">
+                        <div class="env-label">Posizione</div>
+                        <div class="env-value" id="location">Rilevamento...</div>
+                    </div>
+                </div>
+                <div class="env-card">
+                    <div class="env-icon">⛰️</div>
+                    <div class="env-info">
+                        <div class="env-label">Altitudine</div>
+                        <div class="env-value" id="elevation">Caricamento...</div>
+                    </div>
+                </div>
+                <div class="env-card">
+                    <div class="env-icon">🌤️</div>
+                    <div class="env-info">
+                        <div class="env-label">Meteo</div>
+                        <div class="env-value" id="weather">Caricamento...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyze Button -->
+        <div class="analyze-section">
+            <button class="btn btn-analyze" id="analyzeBtn" disabled>
+                <span class="btn-text">🧠 Analizza con AI Ibrida</span>
+                <span class="btn-subtitle">Google Vision + Claude AI</span>
+            </button>
+            <div class="analyze-progress" id="analyzeProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div class="progress-text">Analizzando...</div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <div class="results-header">
+                <h2>📊 Risultati Analisi</h2>
+                <div class="results-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="window.open('dashboard.html', '_blank')">
+                        📊 Dashboard
+                    </button>
+                </div>
             </div>
             
-            <button class="method-btn hardware-btn" id="analyzeHardwareBtn" onclick="analyzeWithHardware()" disabled>
-              <span>🔬 Rileva con Sensori</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Environmental Status Compatto -->
-      <div class="env-status-compact">
-        <div class="env-grid">
-          <div class="env-item">
-            <span class="env-icon">📍</span>
-            <span class="env-label">Posizione</span>
-            <span class="env-value" id="location">Rilevamento...</span>
-          </div>
-          <div class="env-item">
-            <span class="env-icon">🏔️</span>
-            <span class="env-label">Altitudine</span>
-            <span class="env-value" id="elevation">–</span>
-          </div>
-          <div class="env-item">
-            <span class="env-icon">🌦️</span>
-            <span class="env-label">Meteo</span>
-            <span class="env-value" id="weather">–</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Results Section -->
-      <div class="result-section" id="resultSection" style="display: none;">
-        <div class="result-header">
-          <h2>🧠 Risultati Rilevamento</h2>
-          <span class="result-method" id="resultMethod">AI Vision</span>
-        </div>
-        
-        <div class="result-main">
-          <div class="score-display">
-            <div class="score-circle" id="scoreCircle">
-              <span id="scoreValue">--</span>
-              <span class="score-unit">%</span>
+            <div class="results-grid">
+                <div class="result-card score-card">
+                    <div class="score-circle" id="scoreCircle">
+                        <div class="score-value" id="scoreValue">--</div>
+                        <div class="score-label">Probabilità</div>
+                    </div>
+                </div>
+                
+                <div class="result-card info-card">
+                    <h3>📍 Analisi Completa</h3>
+                    <div class="result-details" id="resultDetails">
+                        <p>In attesa di analisi...</p>
+                    </div>
+                </div>
             </div>
-            <p class="score-label" id="scoreLabel">Probabilità Target</p>
-          </div>
-          
-          <div class="result-details">
-            <div id="aiPrediction">Analisi in corso...</div>
-          </div>
+            
+            <div class="feedback-section" id="feedbackSection">
+                <h3>🎯 Hai trovato il target?</h3>
+                <p>Il tuo feedback migliora l'accuracy del sistema</p>
+                <div class="feedback-buttons">
+                    <button class="btn btn-success" id="foundYes">
+                        ✅ Sì, trovato!
+                    </button>
+                    <button class="btn btn-danger" id="foundNo">
+                        ❌ Non trovato
+                    </button>
+                </div>
+                <div class="feedback-confirmation" id="feedbackConfirmation" style="display: none;">
+                    <p>✅ Grazie! Feedback salvato per migliorare l'AI</p>
+                </div>
+            </div>
         </div>
-        
-        <!-- Environmental Factors Compatto -->
-        <div class="factors-compact">
-          <div class="factor-item">
-            <span class="factor-icon">🌡️</span>
-            <span class="factor-value" id="tempFactor">–</span>
-          </div>
-          <div class="factor-item">
-            <span class="factor-icon">💧</span>
-            <span class="factor-value" id="humidityFactor">–</span>
-          </div>
-          <div class="factor-item">
-            <span class="factor-icon">🌿</span>
-            <span class="factor-value" id="vegetationFactor">–</span>
-          </div>
-        </div>
-        
-        <!-- Result Actions -->
-        <div class="result-actions">
-          <button class="result-btn secondary" onclick="newScan()">
-            🔄 Nuovo Scan
-          </button>
-          <a href="/dashboard.html" class="result-btn primary">
-            📊 Dashboard
-          </a>
-        </div>
-      </div>
 
+        <!-- Quick Links -->
+        <div class="quick-links">
+            <a href="training.html" class="quick-link">
+                🎯 Training Sensori
+            </a>
+            <a href="dashboard.html" class="quick-link">
+                📊 Analytics
+            </a>
+            <a href="#" class="quick-link" id="aboutLink">
+                ℹ️ Info
+            </a>
+        </div>
     </div>
-  </div>
 
-  <!-- Footer Compatto -->
-  <footer class="footer-compact">
-    <div class="container">
-      <div class="footer-content">
-        <span>Made with 👃 by Sniffer Team</span>
-        <div class="footer-links">
-          <a href="/dashboard.html">📊 Analytics</a>
-          <a href="#" onclick="showInfo()">ℹ️ Info</a>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
