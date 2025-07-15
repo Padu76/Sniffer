@@ -23,6 +23,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentWeather = null;
     let currentElevation = null;
     let selectedImage = null;
+    let selectedImageBase64 = null;
+    let currentScanId = null; // For tracking feedback
+    let currentAnalysis = null; // Store current analysis for feedback
 
     // Utility functions
     function updateStatus(element, text, isError = false) {
@@ -48,11 +51,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateAnalyzeButton() {
         const hasLocation = currentLocation !== null;
-        const hasImage = selectedImage !== null;
         
-        if (hasLocation && hasImage) {
+        if (hasLocation) {
             analyzeBtn.disabled = false;
             analyzeBtn.style.opacity = '1';
+            
+            // Update button text based on image availability
+            const btnText = analyzeBtn.querySelector('.btn-text');
+            if (selectedImage) {
+                btnText.textContent = 'Analizza con AI Ibrida';
+            } else {
+                btnText.textContent = 'Analizza Condizioni';
+            }
         } else {
             analyzeBtn.disabled = true;
             analyzeBtn.style.opacity = '0.6';
@@ -71,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const options = {
             enableHighAccuracy: true,
             timeout: 10000,
-            maximumAge: 300000 // 5 minutes
+            maximumAge: 300000
         };
 
         navigator.geolocation.getCurrentPosition(
@@ -134,17 +144,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Image handling
     function setupImageUpload() {
-        // Click to upload
         uploadArea.addEventListener('click', () => {
             if (!imagePreview.style.display || imagePreview.style.display === 'none') {
                 imageUpload.click();
             }
         });
 
-        // File input change
         imageUpload.addEventListener('change', handleImageSelect);
 
-        // Drag and drop
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
@@ -166,7 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // Remove image
         removeImage.addEventListener('click', (e) => {
             e.stopPropagation();
             clearImage();
@@ -177,13 +183,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const file = imageUpload.files[0];
         if (!file) return;
 
-        // Validate file type
         if (!file.type.startsWith('image/')) {
             alert('Seleziona un file immagine valido');
             return;
         }
 
-        // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert('Il file è troppo grande. Massimo 5MB');
             return;
@@ -191,12 +195,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         selectedImage = file;
         
-        // Show preview
         const reader = new FileReader();
         reader.onload = (e) => {
             previewImg.src = e.target.result;
             imagePreview.style.display = 'block';
             uploadArea.querySelector('.upload-content').style.display = 'none';
+            
+            selectedImageBase64 = e.target.result.split(',')[1];
         };
         reader.readAsDataURL(file);
 
@@ -205,34 +210,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function clearImage() {
         selectedImage = null;
+        selectedImageBase64 = null;
         imageUpload.value = '';
         imagePreview.style.display = 'none';
         uploadArea.querySelector('.upload-content').style.display = 'block';
         updateAnalyzeButton();
     }
 
-    // Analysis
+    // Analysis with Hybrid AI
     async function performAnalysis() {
-        if (!currentLocation || !selectedImage) {
-            alert('Assicurati di avere posizione e foto');
+        if (!currentLocation) {
+            alert('Assicurati di avere la posizione');
             return;
         }
 
         showLoading(analyzeBtn);
 
         try {
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('photo', selectedImage);
-            formData.append('lat', currentLocation.lat);
-            formData.append('lon', currentLocation.lon);
-            formData.append('elevation', currentElevation || '');
-            formData.append('weather', currentWeather || '');
+            const analysisData = {
+                lat: currentLocation.lat,
+                lon: currentLocation.lon,
+                elevation: currentElevation || '',
+                weather: currentWeather || '',
+                image: selectedImageBase64 || null
+            };
 
-            // Send to API
+            console.log('Sending to Hybrid AI...', {
+                hasImage: !!selectedImageBase64,
+                location: `${currentLocation.lat}, ${currentLocation.lon}`
+            });
+
             const response = await fetch('/api/analyze', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(analysisData)
             });
 
             if (!response.ok) {
@@ -241,8 +254,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const result = await response.json();
             
-            // Display results
-            displayResults(result);
+            console.log('Hybrid AI analysis result:', result);
+            
+            // Store analysis for feedback
+            currentAnalysis = result;
+            currentScanId = generateScanId();
+            
+            displayEnhancedResults(result);
 
         } catch (error) {
             console.error('Analysis error:', error);
@@ -252,28 +270,148 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function displayResults(data) {
-        // Show result section
+    function generateScanId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    function displayEnhancedResults(data) {
         resultSection.style.display = 'block';
         
-        // Animate score
         const score = data.probability || 0;
         animateScore(score);
         
-        // Update prediction text
-        aiPrediction.textContent = data.analysis || 'Analisi completata';
+        aiPrediction.innerHTML = `
+            <div class="claude-analysis">
+                <h4>🧠 Analisi Ibrida AI</h4>
+                <p>${data.analysis || 'Analisi completata'}</p>
+                
+                ${data.recommendations ? `
+                    <h4>💡 Raccomandazioni</h4>
+                    <p>${data.recommendations}</p>
+                ` : ''}
+                
+                ${data.species_likely ? `
+                    <h4>🍄 Specie Probabili</h4>
+                    <p>${data.species_likely}</p>
+                ` : ''}
+                
+                ${data.best_spots ? `
+                    <h4>📍 Dove Cercare</h4>
+                    <p>${data.best_spots}</p>
+                ` : ''}
+                
+                ${data.vision_insights ? `
+                    <h4>👁️ Google Vision</h4>
+                    <p>${data.vision_insights}</p>
+                ` : ''}
+                
+                <div class="analysis-meta">
+                    <small>Confidenza: ${data.confidence || 'Media'} | 
+                    Metodo: ${data.analysisMethod || 'Hybrid'} | 
+                    Fonte: ${data.source || 'AI'}</small>
+                </div>
+            </div>
+            
+            <!-- FEEDBACK SECTION -->
+            <div class="feedback-section">
+                <h4>📊 Aiuta il Machine Learning!</h4>
+                <p>Dopo la ricerca, facci sapere se hai trovato funghi:</p>
+                <div class="feedback-buttons">
+                    <button class="feedback-btn success" onclick="submitFeedback(true)">
+                        ✅ Ho trovato funghi!
+                    </button>
+                    <button class="feedback-btn failure" onclick="submitFeedback(false)">
+                        ❌ Non ho trovato nulla
+                    </button>
+                </div>
+                <div class="feedback-status" id="feedbackStatus" style="display: none;"></div>
+            </div>
+        `;
         
-        // Update factors
         tempFactor.textContent = data.factors?.temperature || 'N/A';
         humidityFactor.textContent = data.factors?.humidity || 'N/A';
         vegetationFactor.textContent = data.factors?.vegetation || 'N/A';
         
-        // Scroll to results
         resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    // Feedback System
+    window.submitFeedback = async function(found) {
+        if (!currentScanId || !currentAnalysis) {
+            alert('Errore: dati scansione non trovati');
+            return;
+        }
+
+        const feedbackButtons = document.querySelectorAll('.feedback-btn');
+        const feedbackStatus = document.getElementById('feedbackStatus');
+        
+        // Disable buttons during submission
+        feedbackButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+        });
+
+        try {
+            const feedbackData = {
+                scanId: currentScanId,
+                found: found,
+                predicted: currentAnalysis.probability,
+                lat: currentLocation.lat,
+                lon: currentLocation.lon,
+                elevation: currentElevation,
+                weather: currentWeather,
+                analysis: currentAnalysis,
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('Submitting feedback:', feedbackData);
+
+            const response = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(feedbackData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // Show success message
+            feedbackStatus.style.display = 'block';
+            feedbackStatus.innerHTML = `
+                <div class="feedback-success">
+                    <span>🎯 Feedback ricevuto! Grazie per aiutare l'AI a migliorare.</span>
+                    ${result.accuracy ? `<br><small>Accuracy zona: ${result.accuracy.toFixed(1)}%</small>` : ''}
+                </div>
+            `;
+            
+            // Hide buttons after successful submission
+            feedbackButtons.forEach(btn => btn.style.display = 'none');
+
+        } catch (error) {
+            console.error('Feedback error:', error);
+            
+            feedbackStatus.style.display = 'block';
+            feedbackStatus.innerHTML = `
+                <div class="feedback-error">
+                    ❌ Errore nell'invio del feedback. Riprova.
+                </div>
+            `;
+            
+            // Re-enable buttons on error
+            feedbackButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            });
+        }
+    };
+
     function animateScore(targetScore) {
-        const duration = 1500; // ms
+        const duration = 1500;
         const startTime = Date.now();
         const startScore = 0;
 
@@ -281,17 +419,15 @@ document.addEventListener("DOMContentLoaded", () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
             
-            // Easing function
             const easeOut = 1 - Math.pow(1 - progress, 3);
             const currentScore = Math.round(startScore + (targetScore - startScore) * easeOut);
             
             scoreValue.textContent = currentScore;
             scoreCircle.style.setProperty('--score', currentScore);
             
-            // Color based on score
-            let color = '#22c55e'; // green
-            if (currentScore < 30) color = '#ef4444'; // red
-            else if (currentScore < 60) color = '#f59e0b'; // yellow
+            let color = '#22c55e';
+            if (currentScore < 30) color = '#ef4444';
+            else if (currentScore < 60) color = '#f59e0b';
             
             scoreCircle.style.background = `conic-gradient(${color} 0deg, ${color} ${currentScore * 3.6}deg, #e5e7eb ${currentScore * 3.6}deg)`;
             
@@ -303,19 +439,16 @@ document.addEventListener("DOMContentLoaded", () => {
         update();
     }
 
-    // New scan
     function resetApp() {
-        // Hide results
         resultSection.style.display = 'none';
-        
-        // Clear image
         clearImage();
-        
-        // Reset score
         scoreValue.textContent = '--';
         scoreCircle.style.setProperty('--score', 0);
         
-        // Scroll to top
+        // Reset feedback state
+        currentScanId = null;
+        currentAnalysis = null;
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -328,11 +461,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setupImageUpload();
     updateAnalyzeButton();
 
-    // Service worker registration (for PWA)
+    // Service worker registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js').catch(() => {
-                // Silent fail - not critical
+                // Silent fail
             });
         });
     }
