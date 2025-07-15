@@ -324,7 +324,7 @@ function generateAnalysisText(probability, factors, keywords) {
 // Save to Airtable
 async function saveToAirtable(data) {
   const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'appXXXXXXXXXXXXXX'; // Replace with your base ID
+  const baseId = 'app70ymOnJLKk19B9'; // Your Airtable Base ID
   const tableName = 'scansioni';
   
   if (!token) {
