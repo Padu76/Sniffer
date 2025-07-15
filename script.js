@@ -24,8 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentElevation = null;
     let selectedImage = null;
     let selectedImageBase64 = null;
-    let currentScanId = null; // For tracking feedback
-    let currentAnalysis = null; // Store current analysis for feedback
+    let currentScanId = null;
+    let currentAnalysis = null;
 
     // Utility functions
     function updateStatus(element, text, isError = false) {
@@ -55,18 +55,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (hasLocation) {
             analyzeBtn.disabled = false;
             analyzeBtn.style.opacity = '1';
-            
-            // Update button text based on image availability
-            const btnText = analyzeBtn.querySelector('.btn-text');
-            if (selectedImage) {
-                btnText.textContent = 'Analizza con AI Ibrida';
-            } else {
-                btnText.textContent = 'Analizza Condizioni';
-            }
         } else {
             analyzeBtn.disabled = true;
             analyzeBtn.style.opacity = '0.6';
         }
+    }
+
+    function getCurrentSearchTarget() {
+        return document.getElementById('searchTarget').value;
     }
 
     // Geolocation
@@ -217,13 +213,14 @@ document.addEventListener("DOMContentLoaded", () => {
         updateAnalyzeButton();
     }
 
-    // Analysis with Hybrid AI
+    // Analysis with Universal AI
     async function performAnalysis() {
         if (!currentLocation) {
             alert('Assicurati di avere la posizione');
             return;
         }
 
+        const searchTarget = getCurrentSearchTarget();
         showLoading(analyzeBtn);
 
         try {
@@ -232,12 +229,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 lon: currentLocation.lon,
                 elevation: currentElevation || '',
                 weather: currentWeather || '',
-                image: selectedImageBase64 || null
+                image: selectedImageBase64 || null,
+                searchTarget: searchTarget // New field for target type
             };
 
-            console.log('Sending to Hybrid AI...', {
+            console.log('Sending to Universal AI...', {
                 hasImage: !!selectedImageBase64,
-                location: `${currentLocation.lat}, ${currentLocation.lon}`
+                location: `${currentLocation.lat}, ${currentLocation.lon}`,
+                target: searchTarget
             });
 
             const response = await fetch('/api/analyze', {
@@ -254,13 +253,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const result = await response.json();
             
-            console.log('Hybrid AI analysis result:', result);
+            console.log('Universal AI analysis result:', result);
             
-            // Store analysis for feedback
             currentAnalysis = result;
             currentScanId = generateScanId();
             
-            displayEnhancedResults(result);
+            displayEnhancedResults(result, searchTarget);
 
         } catch (error) {
             console.error('Analysis error:', error);
@@ -274,39 +272,43 @@ document.addEventListener("DOMContentLoaded", () => {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
-    function displayEnhancedResults(data) {
+    function displayEnhancedResults(data, target) {
         resultSection.style.display = 'block';
         
         const score = data.probability || 0;
         animateScore(score);
         
+        // Update result badge based on target
+        const targetConfig = getTargetConfig(target);
+        document.getElementById('resultBadge').textContent = `Analisi ${targetConfig.name} Completata`;
+        
         aiPrediction.innerHTML = `
             <div class="claude-analysis">
-                <h4>🧠 Analisi Ibrida AI</h4>
+                <h4>🧠 Analisi AI Universale - ${targetConfig.name}</h4>
                 <p>${data.analysis || 'Analisi completata'}</p>
                 
                 ${data.recommendations ? `
-                    <h4>💡 Raccomandazioni</h4>
+                    <h4>💡 Raccomandazioni per ${targetConfig.name}</h4>
                     <p>${data.recommendations}</p>
                 ` : ''}
                 
                 ${data.species_likely ? `
-                    <h4>🍄 Specie Probabili</h4>
+                    <h4>${targetConfig.icon} ${targetConfig.speciesLabel}</h4>
                     <p>${data.species_likely}</p>
                 ` : ''}
                 
                 ${data.best_spots ? `
-                    <h4>📍 Dove Cercare</h4>
+                    <h4>📍 Zone Migliori</h4>
                     <p>${data.best_spots}</p>
                 ` : ''}
                 
                 ${data.vision_insights ? `
-                    <h4>👁️ Google Vision</h4>
+                    <h4>👁️ Analisi Visiva</h4>
                     <p>${data.vision_insights}</p>
                 ` : ''}
                 
                 <div class="analysis-meta">
-                    <small>Confidenza: ${data.confidence || 'Media'} | 
+                    <small>Target: ${targetConfig.name} | Confidenza: ${data.confidence || 'Media'} | 
                     Metodo: ${data.analysisMethod || 'Hybrid'} | 
                     Fonte: ${data.source || 'AI'}</small>
                 </div>
@@ -315,10 +317,10 @@ document.addEventListener("DOMContentLoaded", () => {
             <!-- FEEDBACK SECTION -->
             <div class="feedback-section">
                 <h4>📊 Aiuta il Machine Learning!</h4>
-                <p>Dopo la ricerca, facci sapere se hai trovato funghi:</p>
+                <p>Dopo la ricerca di ${targetConfig.name.toLowerCase()}, facci sapere se hai trovato qualcosa:</p>
                 <div class="feedback-buttons">
                     <button class="feedback-btn success" onclick="submitFeedback(true)">
-                        ✅ Ho trovato funghi!
+                        ✅ Ho trovato ${targetConfig.name.toLowerCase()}!
                     </button>
                     <button class="feedback-btn failure" onclick="submitFeedback(false)">
                         ❌ Non ho trovato nulla
@@ -335,7 +337,17 @@ document.addEventListener("DOMContentLoaded", () => {
         resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // Feedback System
+    function getTargetConfig(target) {
+        const configs = {
+            funghi: { name: 'Funghi', icon: '🍄', speciesLabel: 'Specie Probabili' },
+            tartufi: { name: 'Tartufi', icon: '🟤', speciesLabel: 'Varietà Probabili' },
+            erbe: { name: 'Erbe Medicinali', icon: '🌿', speciesLabel: 'Erbe Identificate' },
+            custom: { name: 'Target Personalizzato', icon: '⚙️', speciesLabel: 'Elementi Rilevati' }
+        };
+        return configs[target] || configs.funghi;
+    }
+
+    // Enhanced Feedback System
     window.submitFeedback = async function(found) {
         if (!currentScanId || !currentAnalysis) {
             alert('Errore: dati scansione non trovati');
@@ -345,7 +357,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const feedbackButtons = document.querySelectorAll('.feedback-btn');
         const feedbackStatus = document.getElementById('feedbackStatus');
         
-        // Disable buttons during submission
         feedbackButtons.forEach(btn => {
             btn.disabled = true;
             btn.style.opacity = '0.6';
@@ -361,10 +372,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 elevation: currentElevation,
                 weather: currentWeather,
                 analysis: currentAnalysis,
+                searchTarget: getCurrentSearchTarget(), // Include target type
                 timestamp: new Date().toISOString()
             };
 
-            console.log('Submitting feedback:', feedbackData);
+            console.log('Submitting universal feedback:', feedbackData);
 
             const response = await fetch('/api/feedback', {
                 method: 'POST',
@@ -380,16 +392,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const result = await response.json();
             
-            // Show success message
+            const targetConfig = getTargetConfig(getCurrentSearchTarget());
             feedbackStatus.style.display = 'block';
             feedbackStatus.innerHTML = `
                 <div class="feedback-success">
-                    <span>🎯 Feedback ricevuto! Grazie per aiutare l'AI a migliorare.</span>
+                    <span>🎯 Feedback per ${targetConfig.name} ricevuto! Grazie per aiutare l'AI a migliorare.</span>
                     ${result.accuracy ? `<br><small>Accuracy zona: ${result.accuracy.toFixed(1)}%</small>` : ''}
                 </div>
             `;
             
-            // Hide buttons after successful submission
             feedbackButtons.forEach(btn => btn.style.display = 'none');
 
         } catch (error) {
@@ -402,7 +413,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             `;
             
-            // Re-enable buttons on error
             feedbackButtons.forEach(btn => {
                 btn.disabled = false;
                 btn.style.opacity = '1';
@@ -445,7 +455,6 @@ document.addEventListener("DOMContentLoaded", () => {
         scoreValue.textContent = '--';
         scoreCircle.style.setProperty('--score', 0);
         
-        // Reset feedback state
         currentScanId = null;
         currentAnalysis = null;
         
