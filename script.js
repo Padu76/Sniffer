@@ -419,25 +419,14 @@ async function calibrateHardware() {
 
 // Quick actions
 function setupQuickActions() {
-    const quickScanBtn = document.getElementById('quickScanBtn');
-    const advancedScanBtn = document.getElementById('advancedScanBtn');
+    const startAnalysisBtn = document.getElementById('startAnalysisBtn');
 
-    if (quickScanBtn) {
-        quickScanBtn.addEventListener('click', () => {
-            // Quick scan: take photo immediately
-            const cameraBtn = document.getElementById('cameraBtn');
-            if (cameraBtn) {
-                cameraBtn.click();
-            }
-        });
-    }
-
-    if (advancedScanBtn) {
-        advancedScanBtn.addEventListener('click', () => {
-            // Advanced scan: scroll to analysis section
-            const methodSection = document.querySelector('.method-section');
-            if (methodSection) {
-                methodSection.scrollIntoView({ behavior: 'smooth' });
+    if (startAnalysisBtn) {
+        startAnalysisBtn.addEventListener('click', () => {
+            // Scroll to target selection
+            const targetSection = document.querySelector('.target-section');
+            if (targetSection) {
+                targetSection.scrollIntoView({ behavior: 'smooth' });
             }
         });
     }
