@@ -141,6 +141,20 @@ body {
   display: flex;
   gap: 15px;
   margin-bottom: 20px;
+  justify-content: center;
+}
+
+.btn-cta {
+  padding: 16px 32px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  min-width: 200px;
+  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3);
+}
+
+.btn-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 25px rgba(5, 150, 105, 0.4);
 }
 
 .hero-stats {
@@ -356,6 +370,7 @@ body {
   border-color: var(--primary);
 }
 
+/* Method Content */
 .method-content {
   display: none;
 }
@@ -363,6 +378,20 @@ body {
 .method-content.active {
   display: block;
   animation: slideIn 0.5s ease;
+}
+
+.method-description {
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--primary);
+}
+
+.method-description p {
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }
 
 @keyframes slideIn {
