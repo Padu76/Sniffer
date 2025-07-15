@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📊 Sniffer Analytics - Dashboard</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -126,16 +126,6 @@
     .chart-container {
       position: relative;
       height: 300px;
-    }
-
-    .map-container {
-      grid-column: 1 / -1;
-      height: 400px;
-      background: var(--bg-card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      overflow: hidden;
-      position: relative;
     }
 
     .data-table {
@@ -286,7 +276,7 @@
   <div class="dashboard-header">
     <div class="container">
       <h1>📊 Sniffer Analytics</h1>
-      <p>Dashboard Machine Learning e Statistiche</p>
+      <p>Dashboard Machine Learning e Statistiche Universali</p>
     </div>
   </div>
 
@@ -303,6 +293,16 @@
       <div class="filters">
         <h3>🔍 Filtri</h3>
         <div class="filter-grid">
+          <div class="filter-group">
+            <label for="targetFilter">Target</label>
+            <select id="targetFilter" onchange="applyFilters()">
+              <option value="">Tutti</option>
+              <option value="funghi">🍄 Funghi</option>
+              <option value="tartufi">🟤 Tartufi</option>
+              <option value="erbe">🌿 Erbe</option>
+              <option value="custom">⚙️ Custom</option>
+            </select>
+          </div>
           <div class="filter-group">
             <label for="seasonFilter">Stagione</label>
             <select id="seasonFilter" onchange="applyFilters()">
@@ -323,16 +323,6 @@
               <option value="Foggy">Nebbioso</option>
             </select>
           </div>
-          <div class="filter-group">
-            <label for="altitudeFilter">Altitudine</label>
-            <select id="altitudeFilter" onchange="applyFilters()">
-              <option value="">Tutte</option>
-              <option value="low">0-200m</option>
-              <option value="medium">200-800m</option>
-              <option value="high">800-1500m</option>
-              <option value="very-high">1500m+</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -341,7 +331,7 @@
         <div class="stat-card">
           <div class="stat-icon">📊</div>
           <div class="stat-value" id="totalScans">-</div>
-          <div class="stat-label">Scansioni Totali</div>
+          <div class="stat-label">Rilevamenti Totali</div>
         </div>
         
         <div class="stat-card">
@@ -351,7 +341,7 @@
         </div>
         
         <div class="stat-card">
-          <div class="stat-icon">🍄</div>
+          <div class="stat-icon">✅</div>
           <div class="stat-value" id="successRate">-</div>
           <div class="stat-label">Tasso Successo</div>
         </div>
@@ -366,14 +356,14 @@
       <!-- Charts -->
       <div class="charts-grid">
         <div class="chart-card">
-          <div class="chart-title">📈 Accuracy nel Tempo</div>
+          <div class="chart-title">📈 Successi per Target</div>
           <div class="chart-container">
-            <canvas id="accuracyChart"></canvas>
+            <canvas id="targetChart"></canvas>
           </div>
         </div>
         
         <div class="chart-card">
-          <div class="chart-title">🌦️ Successo per Meteo</div>
+          <div class="chart-title">🌦️ Performance per Meteo</div>
           <div class="chart-container">
             <canvas id="weatherChart"></canvas>
           </div>
@@ -387,20 +377,9 @@
         </div>
         
         <div class="chart-card">
-          <div class="chart-title">📅 Attività per Stagione</div>
+          <div class="chart-title">📅 Attività nel Tempo</div>
           <div class="chart-container">
-            <canvas id="seasonChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Map -->
-      <div class="chart-card">
-        <div class="chart-title">🗺️ Mappa Heatmap Zone</div>
-        <div class="map-container" id="heatmap">
-          <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
-            📍 Mappa interattiva delle zone esplorate<br>
-            <small>Verde = Alta probabilità | Rosso = Bassa probabilità</small>
+            <canvas id="timeChart"></canvas>
           </div>
         </div>
       </div>
@@ -408,24 +387,23 @@
       <!-- Recent Feedback Table -->
       <div class="data-table">
         <div class="table-header">
-          📋 Feedback Recenti
+          📋 Rilevamenti Recenti
         </div>
         <div class="table-content">
           <table>
             <thead>
               <tr>
                 <th>Data</th>
+                <th>Target</th>
                 <th>Posizione</th>
                 <th>Predetto</th>
                 <th>Trovato</th>
                 <th>Accuracy</th>
-                <th>Meteo</th>
-                <th>Stagione</th>
               </tr>
             </thead>
             <tbody id="feedbackTable">
               <tr>
-                <td colspan="7" class="loading">Caricamento dati...</td>
+                <td colspan="6" class="loading">Caricamento dati...</td>
               </tr>
             </tbody>
           </table>
@@ -438,33 +416,33 @@
   <script>
     // Global variables
     let allFeedbackData = [];
-    let allScanData = [];
     let filteredData = [];
     let charts = {};
 
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', () => {
-      loadDashboardData();
+      // Wait for Chart.js to load
+      if (typeof Chart !== 'undefined') {
+        loadDashboardData();
+      } else {
+        setTimeout(() => {
+          if (typeof Chart !== 'undefined') {
+            loadDashboardData();
+          } else {
+            showError('Errore nel caricamento Chart.js. Ricaricare la pagina.');
+          }
+        }, 1000);
+      }
     });
 
     // Load all dashboard data
     async function loadDashboardData() {
       try {
         console.log('Loading dashboard data...');
-        
-        // Show loading state
         showLoadingState();
         
-        // Load data from Airtable
-        await Promise.all([
-          loadFeedbackData(),
-          loadScanData()
-        ]);
-        
-        // Apply current filters
+        await loadFeedbackData();
         applyFilters();
-        
-        // Update all components
         updateStats();
         updateCharts();
         updateTable();
@@ -473,11 +451,11 @@
         
       } catch (error) {
         console.error('Error loading dashboard data:', error);
-        showError('Errore nel caricamento dei dati. Verifica la configurazione API.');
+        showError('Errore nel caricamento dei dati: ' + error.message);
       }
     }
 
-    // Load feedback data from Airtable
+    // Load feedback data
     async function loadFeedbackData() {
       try {
         const response = await fetch('/api/dashboard?type=feedback');
@@ -490,66 +468,34 @@
         
       } catch (error) {
         console.error('Error loading feedback data:', error);
-        // Use mock data for development
-        allFeedbackData = generateMockFeedbackData();
+        allFeedbackData = generateMockData();
+        console.log('Using mock data:', allFeedbackData.length, 'records');
       }
     }
 
-    // Load scan data from Airtable
-    async function loadScanData() {
-      try {
-        const response = await fetch('/api/dashboard?type=scansioni');
-        if (!response.ok) throw new Error('Failed to fetch scan data');
-        
-        const data = await response.json();
-        allScanData = data.records || [];
-        
-        console.log('Loaded scan data:', allScanData.length, 'records');
-        
-      } catch (error) {
-        console.error('Error loading scan data:', error);
-        // Use mock data for development
-        allScanData = generateMockScanData();
-      }
-    }
-
-    // Apply filters to data
+    // Apply filters
     function applyFilters() {
+      const targetFilter = document.getElementById('targetFilter').value;
       const seasonFilter = document.getElementById('seasonFilter').value;
       const weatherFilter = document.getElementById('weatherFilter').value;
-      const altitudeFilter = document.getElementById('altitudeFilter').value;
       
       filteredData = allFeedbackData.filter(record => {
         const fields = record.fields || record;
         
-        // Season filter
+        if (targetFilter && fields.Search_Target !== targetFilter) return false;
         if (seasonFilter && fields.Season !== seasonFilter) return false;
-        
-        // Weather filter
         if (weatherFilter && fields.Weather_Category !== weatherFilter) return false;
-        
-        // Altitude filter
-        if (altitudeFilter) {
-          const altitude = fields.Altitudine || 0;
-          switch (altitudeFilter) {
-            case 'low': if (altitude >= 200) return false; break;
-            case 'medium': if (altitude < 200 || altitude >= 800) return false; break;
-            case 'high': if (altitude < 800 || altitude >= 1500) return false; break;
-            case 'very-high': if (altitude < 1500) return false; break;
-          }
-        }
         
         return true;
       });
       
       console.log('Applied filters:', {
+        targetFilter,
         seasonFilter,
         weatherFilter,
-        altitudeFilter,
         resultCount: filteredData.length
       });
       
-      // Update components with filtered data
       updateStats();
       updateCharts();
       updateTable();
@@ -559,10 +505,8 @@
     function updateStats() {
       const data = filteredData.length > 0 ? filteredData : allFeedbackData;
       
-      // Total scans
       document.getElementById('totalScans').textContent = data.length;
       
-      // Overall accuracy
       const accurateCount = data.filter(record => {
         const fields = record.fields || record;
         return fields.Accuracy === 100;
@@ -570,15 +514,13 @@
       const accuracy = data.length > 0 ? Math.round((accurateCount / data.length) * 100) : 0;
       document.getElementById('overallAccuracy').textContent = accuracy + '%';
       
-      // Success rate (mushrooms found)
       const foundCount = data.filter(record => {
         const fields = record.fields || record;
-        return fields.Found_Mushrooms === true;
+        return fields.Found_Target === true || fields.Found_Mushrooms === true;
       }).length;
       const successRate = data.length > 0 ? Math.round((foundCount / data.length) * 100) : 0;
       document.getElementById('successRate').textContent = successRate + '%';
       
-      // Unique zones
       const uniqueZones = new Set(data.map(record => {
         const fields = record.fields || record;
         return fields.Zone_Hash;
@@ -588,36 +530,78 @@
 
     // Update charts
     function updateCharts() {
-      updateAccuracyChart();
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded');
+        return;
+      }
+
+      updateTargetChart();
       updateWeatherChart();
       updateElevationChart();
-      updateSeasonChart();
+      updateTimeChart();
     }
 
-    // Update accuracy chart
-    function updateAccuracyChart() {
-      const ctx = document.getElementById('accuracyChart').getContext('2d');
+    // Target chart
+    function updateTargetChart() {
+      const ctx = document.getElementById('targetChart');
+      if (!ctx) return;
       
-      // Destroy existing chart
-      if (charts.accuracy) charts.accuracy.destroy();
+      if (charts.target) charts.target.destroy();
       
-      // Group data by date
       const data = filteredData.length > 0 ? filteredData : allFeedbackData;
-      const groupedData = groupByDate(data);
+      const targetData = groupByTarget(data);
       
-      charts.accuracy = new Chart(ctx, {
-        type: 'line',
+      charts.target = new Chart(ctx, {
+        type: 'doughnut',
         data: {
-          labels: Object.keys(groupedData),
+          labels: Object.keys(targetData),
           datasets: [{
-            label: 'Accuracy %',
-            data: Object.values(groupedData).map(records => {
-              const accurate = records.filter(r => (r.fields || r).Accuracy === 100).length;
-              return Math.round((accurate / records.length) * 100);
+            data: Object.values(targetData).map(records => {
+              return records.filter(r => {
+                const fields = r.fields || r;
+                return fields.Found_Target === true || fields.Found_Mushrooms === true;
+              }).length;
             }),
-            borderColor: '#059669',
-            backgroundColor: 'rgba(5, 150, 105, 0.1)',
-            tension: 0.4
+            backgroundColor: ['#059669', '#8b4513', '#22c55e', '#6366f1'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    // Weather chart
+    function updateWeatherChart() {
+      const ctx = document.getElementById('weatherChart');
+      if (!ctx) return;
+      
+      if (charts.weather) charts.weather.destroy();
+      
+      const data = filteredData.length > 0 ? filteredData : allFeedbackData;
+      const weatherData = groupByWeather(data);
+      
+      charts.weather = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(weatherData),
+          datasets: [{
+            label: 'Successi',
+            data: Object.values(weatherData).map(records => {
+              return records.filter(r => {
+                const fields = r.fields || r;
+                return fields.Found_Target === true || fields.Found_Mushrooms === true;
+              }).length;
+            }),
+            backgroundColor: '#059669',
+            borderRadius: 4
           }]
         },
         options: {
@@ -626,43 +610,19 @@
           scales: {
             y: {
               beginAtZero: true,
-              max: 100
+              ticks: {
+                stepSize: 1
+              }
             }
           }
         }
       });
     }
 
-    // Update weather chart
-    function updateWeatherChart() {
-      const ctx = document.getElementById('weatherChart').getContext('2d');
-      
-      if (charts.weather) charts.weather.destroy();
-      
-      const data = filteredData.length > 0 ? filteredData : allFeedbackData;
-      const weatherData = groupByWeather(data);
-      
-      charts.weather = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: Object.keys(weatherData),
-          datasets: [{
-            data: Object.values(weatherData).map(records => {
-              return records.filter(r => (r.fields || r).Found_Mushrooms === true).length;
-            }),
-            backgroundColor: ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0']
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
-        }
-      });
-    }
-
-    // Update elevation chart
+    // Elevation chart
     function updateElevationChart() {
-      const ctx = document.getElementById('elevationChart').getContext('2d');
+      const ctx = document.getElementById('elevationChart');
+      if (!ctx) return;
       
       if (charts.elevation) charts.elevation.destroy();
       
@@ -674,90 +634,106 @@
         data: {
           labels: Object.keys(elevationData),
           datasets: [{
-            label: 'Scansioni',
+            label: 'Rilevamenti',
             data: Object.values(elevationData).map(records => records.length),
-            backgroundColor: '#059669'
+            backgroundColor: '#10b981',
+            borderRadius: 4
           }]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
         }
       });
     }
 
-    // Update season chart
-    function updateSeasonChart() {
-      const ctx = document.getElementById('seasonChart').getContext('2d');
+    // Time chart
+    function updateTimeChart() {
+      const ctx = document.getElementById('timeChart');
+      if (!ctx) return;
       
-      if (charts.season) charts.season.destroy();
+      if (charts.time) charts.time.destroy();
       
       const data = filteredData.length > 0 ? filteredData : allFeedbackData;
-      const seasonData = groupBySeason(data);
+      const timeData = groupByDate(data);
       
-      charts.season = new Chart(ctx, {
-        type: 'radar',
+      charts.time = new Chart(ctx, {
+        type: 'line',
         data: {
-          labels: Object.keys(seasonData),
+          labels: Object.keys(timeData).slice(-7), // Last 7 days
           datasets: [{
-            label: 'Successi',
-            data: Object.values(seasonData).map(records => {
-              return records.filter(r => (r.fields || r).Found_Mushrooms === true).length;
-            }),
+            label: 'Rilevamenti',
+            data: Object.values(timeData).slice(-7).map(records => records.length),
             borderColor: '#059669',
-            backgroundColor: 'rgba(5, 150, 105, 0.2)'
+            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+            tension: 0.4,
+            fill: true
           }]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
         }
       });
     }
 
-    // Update feedback table
+    // Update table
     function updateTable() {
       const tbody = document.getElementById('feedbackTable');
       const data = (filteredData.length > 0 ? filteredData : allFeedbackData)
-        .slice(0, 20) // Show last 20 records
+        .slice(0, 20)
         .reverse();
       
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">Nessun dato disponibile</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">Nessun dato disponibile</td></tr>';
         return;
       }
       
       tbody.innerHTML = data.map(record => {
         const fields = record.fields || record;
         const date = new Date(fields.Timestamp).toLocaleDateString('it-IT');
+        const target = getTargetIcon(fields.Search_Target || 'funghi');
         const location = `${parseFloat(fields.Latitudine).toFixed(4)}, ${parseFloat(fields.Longitudine).toFixed(4)}`;
         const predicted = fields.Predicted_Probability + '%';
-        const found = fields.Found_Mushrooms;
+        const found = fields.Found_Target || fields.Found_Mushrooms;
         const accuracy = fields.Accuracy;
-        const weather = fields.Weather_Category || 'N/A';
-        const season = fields.Season || 'N/A';
         
         return `
           <tr>
             <td>${date}</td>
+            <td>${target}</td>
             <td>${location}</td>
             <td>${predicted}</td>
             <td><span class="status-badge ${found ? 'status-success' : 'status-failure'}">${found ? 'Sì' : 'No'}</span></td>
             <td>${accuracy}%</td>
-            <td>${weather}</td>
-            <td>${season}</td>
           </tr>
         `;
       }).join('');
     }
 
     // Helper functions
-    function groupByDate(data) {
+    function groupByTarget(data) {
       return data.reduce((groups, record) => {
         const fields = record.fields || record;
-        const date = new Date(fields.Timestamp).toLocaleDateString('it-IT');
-        if (!groups[date]) groups[date] = [];
-        groups[date].push(record);
+        const target = fields.Search_Target || 'funghi';
+        if (!groups[target]) groups[target] = [];
+        groups[target].push(record);
         return groups;
       }, {});
     }
@@ -788,14 +764,24 @@
       }, {});
     }
 
-    function groupBySeason(data) {
+    function groupByDate(data) {
       return data.reduce((groups, record) => {
         const fields = record.fields || record;
-        const season = fields.Season || 'Unknown';
-        if (!groups[season]) groups[season] = [];
-        groups[season].push(record);
+        const date = new Date(fields.Timestamp).toLocaleDateString('it-IT');
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(record);
         return groups;
       }, {});
+    }
+
+    function getTargetIcon(target) {
+      const icons = {
+        funghi: '🍄 Funghi',
+        tartufi: '🟤 Tartufi',
+        erbe: '🌿 Erbe',
+        custom: '⚙️ Custom'
+      };
+      return icons[target] || '🍄 Funghi';
     }
 
     function showLoadingState() {
@@ -813,13 +799,15 @@
       container.insertBefore(errorDiv, container.firstChild);
     }
 
-    // Mock data generators for development
-    function generateMockFeedbackData() {
-      const mockData = [];
+    // Mock data generator
+    function generateMockData() {
+      const targets = ['funghi', 'tartufi', 'erbe', 'custom'];
       const weatherTypes = ['Rainy', 'Cloudy', 'Sunny', 'Foggy'];
       const seasons = ['Primavera', 'Estate', 'Autunno', 'Inverno'];
+      const mockData = [];
       
       for (let i = 0; i < 50; i++) {
+        const target = targets[Math.floor(Math.random() * targets.length)];
         const found = Math.random() > 0.6;
         const predicted = Math.round(Math.random() * 100);
         const accuracy = (found && predicted > 50) || (!found && predicted <= 50) ? 100 : 0;
@@ -827,7 +815,9 @@
         mockData.push({
           fields: {
             Scan_ID: `mock_${i}`,
-            Found_Mushrooms: found,
+            Search_Target: target,
+            Found_Target: found,
+            Found_Mushrooms: found, // Backward compatibility
             Predicted_Probability: predicted,
             Latitudine: 45.4 + (Math.random() - 0.5) * 0.1,
             Longitudine: 10.9 + (Math.random() - 0.5) * 0.1,
@@ -842,10 +832,6 @@
       }
       
       return mockData;
-    }
-
-    function generateMockScanData() {
-      return []; // For now, focus on feedback data
     }
   </script>
 </body>
