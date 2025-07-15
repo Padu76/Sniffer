@@ -1,27 +1,134 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sniffer</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍄 Sniffer - Rilevatore Intelligente</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="container">
-    <h1>👃 Sniffer</h1>
-    <div class="info">
-      <p><strong>📍 Posizione:</strong> <span id="location">Caricamento...</span></p>
-      <p><strong>🏔️ Altitudine:</strong> <span id="elevation">–</span></p>
-      <p><strong>🌦️ Meteo:</strong> <span id="weather">–</span></p>
-    </div>
-    <input type="file" id="imageUpload" accept="image/*" />
-    <button id="analyzeBtn">🔍 Analizza</button>
-    <div class="result" id="resultSection" style="display:none;">
-      <h2>🧠 Analisi AI</h2>
-      <p id="aiPrediction">Caricamento...</p>
+  <!-- Hero Section -->
+  <div class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="logo">
+          <span class="logo-icon">👃</span>
+          <h1>Sniffer</h1>
+        </div>
+        <p class="tagline">Rilevatore Intelligente per Funghi</p>
+        <p class="description">Analizza il terreno con AI, geolocalizzazione e meteo per stimare la presenza di funghi</p>
+      </div>
     </div>
   </div>
+
+  <!-- Main App -->
+  <div class="app-container">
+    <div class="container">
+      
+      <!-- Status Cards -->
+      <div class="status-grid">
+        <div class="status-card">
+          <div class="status-icon">📍</div>
+          <div class="status-content">
+            <span class="status-label">Posizione</span>
+            <span class="status-value" id="location">Rilevamento...</span>
+          </div>
+        </div>
+        
+        <div class="status-card">
+          <div class="status-icon">🏔️</div>
+          <div class="status-content">
+            <span class="status-label">Altitudine</span>
+            <span class="status-value" id="elevation">–</span>
+          </div>
+        </div>
+        
+        <div class="status-card">
+          <div class="status-icon">🌦️</div>
+          <div class="status-content">
+            <span class="status-label">Meteo</span>
+            <span class="status-value" id="weather">–</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Photo Upload -->
+      <div class="upload-section">
+        <h2>📸 Foto del Terreno</h2>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="imageUpload" accept="image/*" hidden>
+          <div class="upload-content">
+            <div class="upload-icon">📷</div>
+            <p class="upload-text">Tocca per scattare o caricare una foto</p>
+            <p class="upload-hint">Inquadra il terreno dove cerchi funghi</p>
+          </div>
+          <div class="image-preview" id="imagePreview" style="display: none;">
+            <img id="previewImg" alt="Anteprima">
+            <button class="remove-image" id="removeImage">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analyze Button -->
+      <button class="analyze-btn" id="analyzeBtn" disabled>
+        <span class="btn-icon">🔍</span>
+        <span class="btn-text">Analizza Terreno</span>
+        <div class="loading-spinner" style="display: none;"></div>
+      </button>
+
+      <!-- Results -->
+      <div class="result-section" id="resultSection" style="display: none;">
+        <h2>🧠 Analisi AI</h2>
+        <div class="result-card">
+          <div class="prediction-score">
+            <div class="score-circle" id="scoreCircle">
+              <span id="scoreValue">--</span>
+              <span class="score-unit">%</span>
+            </div>
+            <p class="score-label">Probabilità Funghi</p>
+          </div>
+          <div class="prediction-details">
+            <p id="aiPrediction">Analisi in corso...</p>
+          </div>
+        </div>
+        
+        <!-- Environmental Factors -->
+        <div class="factors-grid">
+          <div class="factor-item">
+            <span class="factor-icon">🌡️</span>
+            <span class="factor-label">Temperatura</span>
+            <span class="factor-value" id="tempFactor">–</span>
+          </div>
+          <div class="factor-item">
+            <span class="factor-icon">💧</span>
+            <span class="factor-label">Umidità</span>
+            <span class="factor-value" id="humidityFactor">–</span>
+          </div>
+          <div class="factor-item">
+            <span class="factor-icon">🌿</span>
+            <span class="factor-label">Vegetazione</span>
+            <span class="factor-value" id="vegetationFactor">–</span>
+          </div>
+        </div>
+        
+        <button class="new-scan-btn" id="newScanBtn">
+          <span>🔄 Nuova Scansione</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>Made with 🍄 by Sniffer Team</p>
+    </div>
+  </footer>
+
   <script src="script.js"></script>
 </body>
 </html>
