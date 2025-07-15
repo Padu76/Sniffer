@@ -737,7 +737,8 @@ async function fetchElevationAndWeather() {
     if (!currentPosition) return;
     
     try {
-        // Try real API first
+        console.log('Fetching real elevation and weather data...');
+        
         const response = await fetch('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -750,33 +751,51 @@ async function fetchElevationAndWeather() {
         
         if (response.ok) {
             const data = await response.json();
+            console.log('Environment data received:', data);
             
             // Update elevation
             const elevationElement = document.getElementById("elevation");
-            if (elevationElement && data.elevation) {
+            if (elevationElement && data.elevation !== undefined) {
                 elevationElement.textContent = `${data.elevation}m`;
             }
             
             // Update weather
             const weatherElement = document.getElementById("weather");
             if (weatherElement && data.weather) {
-                weatherElement.textContent = data.weather;
+                if (typeof data.weather === 'object') {
+                    weatherElement.textContent = data.weather.description;
+                } else {
+                    weatherElement.textContent = data.weather;
+                }
             }
         } else {
-            throw new Error('API not available');
+            throw new Error(`API response: ${response.status}`);
         }
     } catch (error) {
-        console.log('Using mock elevation and weather data:', error.message);
+        console.log('API failed, using mock data:', error.message);
         
-        // Generate mock data based on position
-        const mockElevation = Math.floor(Math.random() * 800) + 400; // 400-1200m for Lessinia
-        const mockWeather = ['Sole, 24°C', 'Nuvoloso, 19°C', 'Pioggia leggera, 16°C'][Math.floor(Math.random() * 3)];
+        // Generate realistic mock data for Lessinia
+        const mockElevation = Math.floor(Math.random() * 800) + 400; // 400-1200m
+        const mockWeather = [
+            'Sole, 24°C', 
+            'Nuvoloso, 19°C', 
+            'Pioggia leggera, 16°C',
+            'Nebbia mattutina, 17°C'
+        ][Math.floor(Math.random() * 4)];
         
         const elevationElement = document.getElementById("elevation");
         const weatherElement = document.getElementById("weather");
         
-        if (elevationElement) elevationElement.textContent = `${mockElevation}m`;
-        if (weatherElement) weatherElement.textContent = mockWeather;
+        if (elevationElement) {
+            elevationElement.textContent = `${mockElevation}m`;
+            elevationElement.style.opacity = '0.7'; // Visual indicator of mock data
+        }
+        if (weatherElement) {
+            weatherElement.textContent = mockWeather;
+            weatherElement.style.opacity = '0.7'; // Visual indicator of mock data
+        }
+        
+        console.log(`Mock data: ${mockElevation}m, ${mockWeather}`);
     }
 }
 
