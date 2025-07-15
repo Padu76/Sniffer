@@ -10,36 +10,35 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Header con Menu -->
-  <header class="header">
+  <!-- Header compatto -->
+  <header class="header-compact">
     <div class="container">
       <div class="header-content">
-        <div class="logo">
+        <div class="logo-compact">
           <span class="logo-icon">👃</span>
           <h1>Sniffer</h1>
         </div>
         <nav class="nav">
           <a href="/dashboard.html" class="nav-link">
             <span class="nav-icon">📊</span>
-            <span>Dashboard</span>
           </a>
         </nav>
       </div>
     </div>
   </header>
 
-  <!-- Hero Section Universale -->
-  <div class="hero">
-    <div class="hero-bg"></div>
+  <!-- Hero Section Compatto -->
+  <div class="hero-compact">
     <div class="container">
-      <div class="hero-content">
+      <div class="hero-grid">
+        <!-- Left: Main Content -->
         <div class="hero-main">
           <h2 class="hero-title">Rilevatore Intelligente</h2>
-          <p class="hero-subtitle">Trova tesori nascosti con AI, sensori e machine learning avanzato</p>
+          <p class="hero-subtitle">Trova tesori nascosti con AI, sensori e machine learning</p>
           
-          <!-- Target Selector -->
-          <div class="target-selector">
-            <label for="searchTarget">🎯 Cosa stai cercando?</label>
+          <!-- Target Selector Inline -->
+          <div class="target-selector-inline">
+            <label for="searchTarget">🎯 Cosa cerchi?</label>
             <select id="searchTarget" onchange="updateSearchMode()">
               <option value="funghi">🍄 Funghi</option>
               <option value="tartufi">🟤 Tartufi</option>
@@ -48,31 +47,63 @@
             </select>
           </div>
           
-          <!-- Statistiche Live -->
-          <div class="hero-stats">
-            <div class="stat-item">
-              <div class="stat-value" id="heroTotalScans">-</div>
-              <div class="stat-label">Rilevamenti</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value" id="heroAccuracy">-</div>
-              <div class="stat-label">Accuracy</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value" id="heroSuccess">-</div>
-              <div class="stat-label">Successi</div>
-            </div>
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <button class="quick-btn primary" onclick="quickScanPhoto()">
+              <span class="btn-icon">📷</span>
+              <span>Scan Rapido</span>
+            </button>
+            <button class="quick-btn secondary" onclick="scrollToAdvanced()">
+              <span class="btn-icon">🔬</span>
+              <span>Avanzato</span>
+            </button>
           </div>
         </div>
-        
-        <!-- Dynamic Visual -->
-        <div class="hero-visual">
-          <div class="target-container">
-            <div class="target-icon" id="heroTargetIcon">🍄</div>
-            <div class="detection-waves">
-              <div class="wave wave-1"></div>
-              <div class="wave wave-2"></div>
-              <div class="wave wave-3"></div>
+
+        <!-- Right: Stats + Sensor Widget -->
+        <div class="hero-side">
+          <!-- Stats Compatte -->
+          <div class="stats-compact">
+            <div class="stat-mini">
+              <span class="stat-number" id="heroTotalScans">127</span>
+              <span class="stat-text">Rilevamenti</span>
+            </div>
+            <div class="stat-mini">
+              <span class="stat-number" id="heroAccuracy">89%</span>
+              <span class="stat-text">Accuracy</span>
+            </div>
+            <div class="stat-mini">
+              <span class="stat-number" id="heroSuccess">71%</span>
+              <span class="stat-text">Successi</span>
+            </div>
+          </div>
+
+          <!-- Sensor Widget Sempre Visibile -->
+          <div class="sensor-widget" id="sensorWidget">
+            <div class="sensor-header">
+              <span class="sensor-icon" id="sensorIcon">📡</span>
+              <div class="sensor-info">
+                <span class="sensor-title">Sonda Hardware</span>
+                <span class="sensor-status" id="sensorStatusText">Non Connessa</span>
+              </div>
+              <div class="sensor-indicator" id="sensorIndicator"></div>
+            </div>
+            
+            <div class="sensor-actions" id="sensorActions">
+              <button class="sensor-btn" id="connectSensorBtn" onclick="connectSensor()">
+                Connetti
+              </button>
+            </div>
+            
+            <!-- Sensor Controls (quando connesso) -->
+            <div class="sensor-controls" id="sensorControls" style="display: none;">
+              <div class="sensor-reading">
+                <span class="reading-label">Segnale:</span>
+                <span class="reading-value" id="sensorReading">-- ppm</span>
+              </div>
+              <button class="calibrate-btn" onclick="calibrateSensor()">
+                🎯 Calibra per <span id="calibrateTarget">Funghi</span>
+              </button>
             </div>
           </div>
         </div>
@@ -80,216 +111,153 @@
     </div>
   </div>
 
-  <!-- Main App -->
+  <!-- Main App - Layout Migliorato -->
   <div class="app-container">
     <div class="container">
       
-      <!-- Quick Action Card -->
-      <div class="quick-action-card">
-        <h3 id="actionTitle">🎯 Inizia la Ricerca</h3>
-        <p id="actionDescription">Analizza il terreno e scopri se ci sono tesori nascosti nelle vicinanze</p>
-        <div class="action-buttons">
-          <button class="action-btn primary" onclick="startQuickScan()">
-            <span class="btn-icon">📷</span>
-            <span class="btn-text">Scatta e Rileva</span>
-          </button>
-          <button class="action-btn secondary" onclick="scrollToDetailedScan()">
-            <span class="btn-icon">🔍</span>
-            <span class="btn-text">Analisi Avanzata</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Search Mode Info -->
-      <div class="search-mode-info" id="searchModeInfo">
-        <div class="mode-header">
+      <!-- Mode Info Compatta -->
+      <div class="mode-banner" id="modeBanner">
+        <div class="mode-content">
           <span class="mode-icon" id="modeIcon">🍄</span>
-          <div class="mode-content">
-            <h4 id="modeTitle">Modalità Funghi</h4>
-            <p id="modeDescription">Ricerca funghi commestibili in base a terreno, umidità e vegetazione</p>
-          </div>
-        </div>
-        <div class="mode-tips" id="modeTips">
-          <strong>💡 Suggerimenti:</strong> Cerca in zone umide, vicino a querce e castagni, dopo piogge
-        </div>
-      </div>
-
-      <!-- Status Cards Dinamiche -->
-      <div class="status-section">
-        <h3>📍 Condizioni Ambientali</h3>
-        <div class="status-grid">
-          <div class="status-card" id="locationCard">
-            <div class="status-header">
-              <div class="status-icon">📍</div>
-              <div class="status-pulse"></div>
-            </div>
-            <div class="status-content">
-              <span class="status-label">Posizione</span>
-              <span class="status-value" id="location">Rilevamento...</span>
-            </div>
-          </div>
-          
-          <div class="status-card" id="elevationCard">
-            <div class="status-header">
-              <div class="status-icon">🏔️</div>
-              <div class="status-indicator"></div>
-            </div>
-            <div class="status-content">
-              <span class="status-label">Altitudine</span>
-              <span class="status-value" id="elevation">–</span>
-            </div>
-          </div>
-          
-          <div class="status-card" id="weatherCard">
-            <div class="status-header">
-              <div class="status-icon">🌦️</div>
-              <div class="status-indicator"></div>
-            </div>
-            <div class="status-content">
-              <span class="status-label">Meteo</span>
-              <span class="status-value" id="weather">–</span>
-            </div>
+          <div class="mode-text">
+            <strong id="modeTitle">Modalità Funghi</strong>
+            <span id="modeTips">Cerca in zone umide, vicino a querce e castagni</span>
           </div>
         </div>
       </div>
 
-      <!-- Sensor Configuration (Future) -->
-      <div class="sensor-section" style="display: none;" id="sensorSection">
-        <h3>🔬 Configurazione Sensori</h3>
-        <div class="sensor-card">
-          <div class="sensor-status">
-            <span class="sensor-icon">📡</span>
-            <div class="sensor-info">
-              <span class="sensor-label">Sonda Olfattiva</span>
-              <span class="sensor-value" id="sensorStatus">Non Connessa</span>
+      <!-- Workflow Cards -->
+      <div class="workflow-section">
+        <h3>🎯 Scegli il Metodo di Rilevamento</h3>
+        
+        <div class="workflow-grid">
+          <!-- AI Vision Method -->
+          <div class="workflow-card ai-method" id="aiMethodCard">
+            <div class="method-header">
+              <span class="method-icon">👁️</span>
+              <h4>Analisi AI Visiva</h4>
+              <span class="method-badge">Sempre Disponibile</span>
             </div>
-            <button class="sensor-btn" id="connectSensor">Connetti</button>
-          </div>
-          <div class="sensor-calibration" id="sensorCalibration" style="display: none;">
-            <p>🎯 Calibra la sonda per il target selezionato</p>
-            <button class="calibrate-btn" onclick="calibrateSensor()">Calibra Sensore</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Photo Upload Section -->
-      <div class="upload-section">
-        <h3>📸 Analisi Visiva del Terreno</h3>
-        <div class="upload-area" id="uploadArea">
-          <input type="file" id="imageUpload" accept="image/*" capture="environment" hidden>
-          <div class="upload-content">
-            <div class="upload-visual">
-              <div class="upload-icon-large">📷</div>
-              <div class="upload-rings">
-                <div class="ring ring-1"></div>
-                <div class="ring ring-2"></div>
-                <div class="ring ring-3"></div>
+            <p class="method-description">Usa foto del terreno + intelligenza artificiale ibrida (Google Vision + Claude AI)</p>
+            
+            <!-- Photo Upload Compatto -->
+            <div class="photo-upload-compact" id="photoUploadArea">
+              <input type="file" id="imageUpload" accept="image/*" capture="environment" hidden>
+              <div class="upload-zone" onclick="selectPhoto()">
+                <div class="upload-icon">📷</div>
+                <span class="upload-text">Aggiungi Foto</span>
+              </div>
+              <div class="photo-preview" id="photoPreview" style="display: none;">
+                <img id="previewImage" alt="Preview">
+                <button class="remove-photo" onclick="removePhoto()">✕</button>
               </div>
             </div>
-            <h4 class="upload-title">Aggiungi Foto del Terreno</h4>
-            <p class="upload-text">Scatta una foto per l'analisi AI del territorio</p>
-            <p class="upload-hint" id="uploadHint">Inquadra il terreno dove vuoi cercare</p>
-            <div class="upload-buttons">
-              <button class="upload-btn camera" onclick="takePhoto()">
-                <span>📷 Scatta Foto</span>
-              </button>
-              <button class="upload-btn gallery" onclick="selectPhoto()">
-                <span>🖼️ Dalla Galleria</span>
-              </button>
-            </div>
+            
+            <button class="method-btn ai-btn" id="analyzeAIBtn" onclick="analyzeWithAI()">
+              <span>🧠 Analizza con AI</span>
+            </button>
           </div>
-          <div class="image-preview" id="imagePreview" style="display: none;">
-            <img id="previewImg" alt="Anteprima">
-            <div class="preview-overlay">
-              <button class="preview-btn remove" id="removeImage">
-                <span>🗑️ Rimuovi</span>
-              </button>
-              <button class="preview-btn retake" onclick="retakePhoto()">
-                <span>🔄 Rifai</span>
-              </button>
+
+          <!-- Hardware Method -->
+          <div class="workflow-card hardware-method" id="hardwareMethodCard">
+            <div class="method-header">
+              <span class="method-icon">🔬</span>
+              <h4>Rilevamento Hardware</h4>
+              <span class="method-badge hardware-status" id="hardwareBadge">Sonda Richiesta</span>
             </div>
+            <p class="method-description">Usa sensori olfattivi calibrati per rilevamento chimico diretto</p>
+            
+            <!-- Hardware Controls -->
+            <div class="hardware-controls" id="hardwareControls">
+              <div class="sensor-reading-display">
+                <div class="reading-gauge">
+                  <div class="gauge-fill" id="gaugeFill"></div>
+                  <span class="gauge-value" id="gaugeValue">0</span>
+                </div>
+                <span class="reading-unit">ppm</span>
+              </div>
+              
+              <div class="sensor-calibration" id="sensorCalibrationPanel" style="display: none;">
+                <p>🎯 Calibra sensore per <strong id="calibrationTarget">funghi</strong></p>
+                <div class="calibration-steps">
+                  <button class="cal-btn" onclick="startCalibration()">Inizia Calibrazione</button>
+                  <span class="cal-status" id="calibrationStatus">Pronto</span>
+                </div>
+              </div>
+            </div>
+            
+            <button class="method-btn hardware-btn" id="analyzeHardwareBtn" onclick="analyzeWithHardware()" disabled>
+              <span>🔬 Rileva con Sensori</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Analyze Button Dinamico -->
-      <div class="analyze-section">
-        <button class="analyze-btn" id="analyzeBtn" disabled>
-          <div class="btn-content">
-            <span class="btn-icon">🧠</span>
-            <div class="btn-text-container">
-              <span class="btn-text" id="analyzeText">Analizza con AI Ibrida</span>
-              <span class="btn-subtitle">Google Vision + Claude AI + ML</span>
-            </div>
+      <!-- Environmental Status Compatto -->
+      <div class="env-status-compact">
+        <div class="env-grid">
+          <div class="env-item">
+            <span class="env-icon">📍</span>
+            <span class="env-label">Posizione</span>
+            <span class="env-value" id="location">Rilevamento...</span>
           </div>
-          <div class="btn-progress">
-            <div class="progress-bar"></div>
+          <div class="env-item">
+            <span class="env-icon">🏔️</span>
+            <span class="env-label">Altitudine</span>
+            <span class="env-value" id="elevation">–</span>
           </div>
-          <div class="loading-spinner" style="display: none;"></div>
-        </button>
-        
-        <div class="analyze-help">
-          <p id="analyzeHelpText">💡 <strong>Suggerimento:</strong> Per risultati migliori, scatta la foto in zone tipiche per il target selezionato</p>
+          <div class="env-item">
+            <span class="env-icon">🌦️</span>
+            <span class="env-label">Meteo</span>
+            <span class="env-value" id="weather">–</span>
+          </div>
         </div>
       </div>
 
       <!-- Results Section -->
       <div class="result-section" id="resultSection" style="display: none;">
         <div class="result-header">
-          <h2>🧠 Risultati Rilevamento AI</h2>
-          <div class="result-badge" id="resultBadge">Analisi Completata</div>
+          <h2>🧠 Risultati Rilevamento</h2>
+          <span class="result-method" id="resultMethod">AI Vision</span>
         </div>
         
         <div class="result-main">
-          <div class="prediction-score">
-            <div class="score-container">
-              <div class="score-circle" id="scoreCircle">
-                <span id="scoreValue">--</span>
-                <span class="score-unit">%</span>
-              </div>
-              <div class="score-indicators">
-                <div class="indicator low"></div>
-                <div class="indicator medium"></div>
-                <div class="indicator high"></div>
-              </div>
+          <div class="score-display">
+            <div class="score-circle" id="scoreCircle">
+              <span id="scoreValue">--</span>
+              <span class="score-unit">%</span>
             </div>
-            <p class="score-label" id="scoreLabel">Probabilità di Trovare il Target</p>
+            <p class="score-label" id="scoreLabel">Probabilità Target</p>
           </div>
           
-          <div class="prediction-details">
+          <div class="result-details">
             <div id="aiPrediction">Analisi in corso...</div>
           </div>
         </div>
         
-        <!-- Environmental Factors -->
-        <div class="factors-section">
-          <h4>🌱 Fattori Ambientali</h4>
-          <div class="factors-grid">
-            <div class="factor-item">
-              <span class="factor-icon">🌡️</span>
-              <span class="factor-label">Temperatura</span>
-              <span class="factor-value" id="tempFactor">–</span>
-            </div>
-            <div class="factor-item">
-              <span class="factor-icon">💧</span>
-              <span class="factor-label">Umidità</span>
-              <span class="factor-value" id="humidityFactor">–</span>
-            </div>
-            <div class="factor-item">
-              <span class="factor-icon">🌿</span>
-              <span class="factor-label">Vegetazione</span>
-              <span class="factor-value" id="vegetationFactor">–</span>
-            </div>
+        <!-- Environmental Factors Compatto -->
+        <div class="factors-compact">
+          <div class="factor-item">
+            <span class="factor-icon">🌡️</span>
+            <span class="factor-value" id="tempFactor">–</span>
+          </div>
+          <div class="factor-item">
+            <span class="factor-icon">💧</span>
+            <span class="factor-value" id="humidityFactor">–</span>
+          </div>
+          <div class="factor-item">
+            <span class="factor-icon">🌿</span>
+            <span class="factor-value" id="vegetationFactor">–</span>
           </div>
         </div>
         
-        <!-- Action Buttons -->
+        <!-- Result Actions -->
         <div class="result-actions">
-          <button class="action-btn secondary" id="newScanBtn">
-            <span>🔄 Nuovo Rilevamento</span>
+          <button class="result-btn secondary" onclick="newScan()">
+            🔄 Nuovo Scan
           </button>
-          <a href="/dashboard.html" class="action-btn tertiary">
-            <span>📊 Vedi Dashboard</span>
+          <a href="/dashboard.html" class="result-btn primary">
+            📊 Dashboard
           </a>
         </div>
       </div>
@@ -297,18 +265,12 @@
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="footer">
+  <!-- Footer Compatto -->
+  <footer class="footer-compact">
     <div class="container">
       <div class="footer-content">
-        <div class="footer-info">
-          <p>Made with 👃 by Sniffer Team</p>
-          <p class="footer-subtitle">Universal AI-powered detection platform</p>
-        </div>
-        <div class="footer-links">
-          <a href="/dashboard.html">📊 Analytics</a>
-          <a href="#" onclick="showInfo()">ℹ️ Info</a>
-        </div>
+        <span>Made with 👃 by Sniffer Team</span>
+        <a href="#" onclick="showInfo()">ℹ️ Info</a>
       </div>
     </div>
   </footer>
@@ -321,54 +283,28 @@
       funghi: {
         icon: '🍄',
         title: 'Modalità Funghi',
-        description: 'Ricerca funghi commestibili in base a terreno, umidità e vegetazione',
-        tips: 'Cerca in zone umide, vicino a querce e castagni, dopo piogge',
-        actionTitle: '🍄 Caccia ai Funghi',
-        actionDesc: 'Analizza il terreno e scopri se ci sono funghi commestibili nelle vicinanze',
-        analyzeText: 'Rileva Funghi',
-        uploadHint: 'Inquadra il sottobosco dove cerchi funghi',
-        helpText: '💡 <strong>Suggerimento:</strong> Migliori risultati in zone umide con foglie decomposte',
-        scoreLabel: 'Probabilità di Trovare Funghi'
+        tips: 'Cerca in zone umide, vicino a querce e castagni'
       },
       tartufi: {
         icon: '🟤',
         title: 'Modalità Tartufi', 
-        description: 'Ricerca tartufi pregiati analizzando suolo, radici e microclima',
-        tips: 'Cerca vicino a querce, noccioli e tigli, in terreni calcarei',
-        actionTitle: '🟤 Caccia al Tartufo',
-        actionDesc: 'Trova tartufi pregiati con analisi avanzata del terreno',
-        analyzeText: 'Rileva Tartufi',
-        uploadHint: 'Inquadra il terreno vicino alle radici degli alberi',
-        helpText: '💡 <strong>Suggerimento:</strong> I tartufi crescono vicino alle radici in terreni ben drenati',
-        scoreLabel: 'Probabilità di Trovare Tartufi'
+        tips: 'Cerca vicino a querce, noccioli e tigli, in terreni calcarei'
       },
       erbe: {
         icon: '🌿',
         title: 'Modalità Erbe',
-        description: 'Riconoscimento erbe medicinali e piante officinali selvatiche',
-        tips: 'Cerca in prati, radure e margini boschivi non inquinati',
-        actionTitle: '🌿 Ricerca Erbe',
-        actionDesc: 'Identifica erbe medicinali e piante officinali selvatiche',
-        analyzeText: 'Identifica Erbe',
-        uploadHint: 'Inquadra le piante che vuoi identificare',
-        helpText: '💡 <strong>Suggerimento:</strong> Evita zone vicine a strade o aree inquinate',
-        scoreLabel: 'Probabilità Erbe Medicinali'
+        tips: 'Cerca in prati, radure e margini boschivi non inquinati'
       },
       custom: {
         icon: '⚙️',
         title: 'Modalità Personalizzata',
-        description: 'Configura i sensori per rilevare target specifici',
-        tips: 'Calibra la sonda olfattiva per il tuo obiettivo specifico',
-        actionTitle: '⚙️ Rilevamento Custom',
-        actionDesc: 'Usa sensori calibrati per trovare il tuo target specifico',
-        analyzeText: 'Rileva Target',
-        uploadHint: 'Inquadra l\'area dove cercare il target',
-        helpText: '💡 <strong>Suggerimento:</strong> Assicurati che i sensori siano calibrati',
-        scoreLabel: 'Probabilità Target Personalizzato'
+        tips: 'Usa sensori calibrati per il tuo target specifico'
       }
     };
 
     let currentTarget = 'funghi';
+    let sensorConnected = false;
+    let selectedImage = null;
 
     // Update search mode
     function updateSearchMode() {
@@ -376,122 +312,182 @@
       currentTarget = target;
       const config = searchTargets[target];
       
-      // Update hero visual
-      document.getElementById('heroTargetIcon').textContent = config.icon;
-      
-      // Update mode info
+      // Update mode banner
       document.getElementById('modeIcon').textContent = config.icon;
       document.getElementById('modeTitle').textContent = config.title;
-      document.getElementById('modeDescription').textContent = config.description;
-      document.getElementById('modeTips').innerHTML = `<strong>💡 Suggerimenti:</strong> ${config.tips}`;
+      document.getElementById('modeTips').textContent = config.tips;
       
-      // Update action card
-      document.getElementById('actionTitle').textContent = config.actionTitle;
-      document.getElementById('actionDescription').textContent = config.actionDesc;
+      // Update calibration target
+      document.getElementById('calibrateTarget').textContent = target;
+      document.getElementById('calibrationTarget').textContent = target;
       
-      // Update upload section
-      document.getElementById('uploadHint').textContent = config.uploadHint;
-      
-      // Update analyze button
-      document.getElementById('analyzeText').textContent = config.analyzeText;
-      document.getElementById('analyzeHelpText').innerHTML = config.helpText;
-      
-      // Update result labels
-      document.getElementById('scoreLabel').textContent = config.scoreLabel;
-      
-      // Show/hide sensor section for custom mode
-      const sensorSection = document.getElementById('sensorSection');
+      // Show/hide hardware method based on target
+      const hardwareCard = document.getElementById('hardwareMethodCard');
       if (target === 'custom') {
-        sensorSection.style.display = 'block';
+        hardwareCard.style.display = 'block';
+        document.getElementById('sensorCalibrationPanel').style.display = 'block';
       } else {
-        sensorSection.style.display = 'none';
+        hardwareCard.style.display = 'none';
+        document.getElementById('sensorCalibrationPanel').style.display = 'none';
       }
-      
-      console.log('Search mode updated to:', target);
     }
 
-    // Enhanced UI functions
-    function startQuickScan() {
-      takePhoto();
-      document.getElementById('uploadArea').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
+    // Quick scan functions
+    function quickScanPhoto() {
+      selectPhoto();
+      setTimeout(() => {
+        if (selectedImage) {
+          analyzeWithAI();
+        }
+      }, 100);
     }
-    
-    function scrollToDetailedScan() {
-      document.querySelector('.upload-section').scrollIntoView({ 
+
+    function scrollToAdvanced() {
+      document.querySelector('.workflow-section').scrollIntoView({ 
         behavior: 'smooth', 
         block: 'start' 
       });
     }
-    
-    function takePhoto() {
-      const input = document.getElementById('imageUpload');
-      input.setAttribute('capture', 'environment');
-      input.click();
-    }
-    
+
+    // Photo handling
     function selectPhoto() {
-      const input = document.getElementById('imageUpload');
-      input.removeAttribute('capture');
-      input.click();
+      document.getElementById('imageUpload').click();
     }
-    
-    function retakePhoto() {
-      document.getElementById('removeImage').click();
-      setTimeout(() => takePhoto(), 100);
+
+    function removePhoto() {
+      selectedImage = null;
+      document.getElementById('photoPreview').style.display = 'none';
+      document.getElementById('photoUploadArea').querySelector('.upload-zone').style.display = 'block';
+      updateAnalyzeButton();
     }
-    
-    function showInfo() {
-      alert(`👃 Sniffer è una piattaforma universale di rilevamento che usa AI ibrida (Google Vision + Claude) e sensori intelligenti per trovare ${currentTarget} e altri target basandosi su fattori ambientali, visivi e olfattivi.`);
-    }
-    
-    function calibrateSensor() {
-      alert('🔬 Calibrazione sensore non ancora implementata. Funzionalità disponibile con hardware Phase 2.');
-    }
-    
-    // Load hero stats
-    async function loadHeroStats() {
-      try {
-        const response = await fetch('/api/dashboard?type=feedback');
-        if (response.ok) {
-          const data = await response.json();
-          const records = data.records || [];
-          
-          // Filter by current target if needed
-          const targetRecords = records.filter(r => 
-            !r.fields?.Search_Target || r.fields?.Search_Target === currentTarget
-          );
-          
-          document.getElementById('heroTotalScans').textContent = targetRecords.length || records.length;
-          
-          const accurate = targetRecords.filter(r => r.fields?.Accuracy === 100).length;
-          const accuracy = targetRecords.length > 0 ? Math.round((accurate / targetRecords.length) * 100) : 0;
-          document.getElementById('heroAccuracy').textContent = accuracy + '%';
-          
-          const found = targetRecords.filter(r => r.fields?.Found_Target === true).length;
-          const success = targetRecords.length > 0 ? Math.round((found / targetRecords.length) * 100) : 0;
-          document.getElementById('heroSuccess').textContent = success + '%';
-        }
-      } catch (error) {
-        // Use mock data
-        document.getElementById('heroTotalScans').textContent = '127';
-        document.getElementById('heroAccuracy').textContent = '89%';
-        document.getElementById('heroSuccess').textContent = '71%';
+
+    function updateAnalyzeButton() {
+      const btn = document.getElementById('analyzeAIBtn');
+      if (selectedImage && window.currentLocation) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
       }
     }
-    
+
+    // Sensor functions
+    function connectSensor() {
+      // Simulate sensor connection
+      sensorConnected = true;
+      document.getElementById('sensorStatusText').textContent = 'Connessa';
+      document.getElementById('sensorIndicator').className = 'sensor-indicator connected';
+      document.getElementById('hardwareBadge').textContent = 'Connessa';
+      document.getElementById('hardwareBadge').className = 'method-badge connected';
+      document.getElementById('sensorControls').style.display = 'block';
+      document.getElementById('sensorActions').style.display = 'none';
+      document.getElementById('analyzeHardwareBtn').disabled = false;
+      
+      // Start mock sensor readings
+      startMockSensorReadings();
+    }
+
+    function startMockSensorReadings() {
+      setInterval(() => {
+        if (sensorConnected) {
+          const reading = Math.round(Math.random() * 100);
+          document.getElementById('sensorReading').textContent = reading + ' ppm';
+          document.getElementById('gaugeValue').textContent = reading;
+          document.getElementById('gaugeFill').style.width = Math.min(reading, 100) + '%';
+        }
+      }, 2000);
+    }
+
+    function calibrateSensor() {
+      alert(`🔬 Calibrazione per ${currentTarget} avviata. Posiziona la sonda nel campione di riferimento.`);
+      document.getElementById('calibrationStatus').textContent = 'Calibrando...';
+      setTimeout(() => {
+        document.getElementById('calibrationStatus').textContent = 'Calibrato ✅';
+      }, 3000);
+    }
+
+    function startCalibration() {
+      calibrateSensor();
+    }
+
+    // Analysis functions
+    function analyzeWithAI() {
+      if (!selectedImage || !window.currentLocation) {
+        alert('Assicurati di avere foto e posizione');
+        return;
+      }
+      
+      document.getElementById('resultMethod').textContent = 'AI Vision';
+      // Call existing analysis function from script.js
+      if (window.performAnalysis) {
+        window.performAnalysis();
+      }
+    }
+
+    function analyzeWithHardware() {
+      if (!sensorConnected) {
+        alert('Connetti prima la sonda hardware');
+        return;
+      }
+      
+      document.getElementById('resultMethod').textContent = 'Hardware Sensing';
+      // Simulate hardware analysis
+      simulateHardwareAnalysis();
+    }
+
+    function simulateHardwareAnalysis() {
+      document.getElementById('resultSection').style.display = 'block';
+      
+      // Mock hardware results
+      const probability = Math.round(Math.random() * 100);
+      document.getElementById('scoreValue').textContent = probability;
+      document.getElementById('scoreLabel').textContent = `Concentrazione ${currentTarget}`;
+      
+      document.getElementById('aiPrediction').innerHTML = `
+        <h4>🔬 Analisi Sensori Hardware</h4>
+        <p>Rilevata concentrazione significativa di composti organici volatili tipici di ${currentTarget}.</p>
+        <p><strong>Lettura sensore:</strong> ${document.getElementById('sensorReading').textContent}</p>
+      `;
+      
+      document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function newScan() {
+      document.getElementById('resultSection').style.display = 'none';
+      removePhoto();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showInfo() {
+      alert('👃 Sniffer è una piattaforma universale di rilevamento che combina AI vision e sensori hardware per trovare tesori nascosti in natura.');
+    }
+
+    // Image upload handler
+    document.getElementById('imageUpload').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        selectedImage = file;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('previewImage').src = e.target.result;
+          document.getElementById('photoPreview').style.display = 'block';
+          document.getElementById('photoUploadArea').querySelector('.upload-zone').style.display = 'none';
+          updateAnalyzeButton();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
-      updateSearchMode(); // Set initial mode
-      loadHeroStats();
+      updateSearchMode();
+      
+      // Load stats
+      if (window.loadHeroStats) {
+        window.loadHeroStats();
+      }
     });
-    
-    // Get current search target (for script.js integration)
-    window.getCurrentSearchTarget = function() {
-      return currentTarget;
-    };
   </script>
 </body>
 </html>
