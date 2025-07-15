@@ -108,7 +108,7 @@ async function handlePostRequest(req, res) {
 
 // Fetch elevation from Google API
 async function fetchElevation(lat, lon) {
-  const apiKey = process.env.VITE_GOOGLE_ELEVATION_API_KEY;
+  const apiKey = process.env.GOOGLE_ELEVATION_API_KEY;
   
   if (!apiKey) {
     throw new Error('Google Elevation API key not configured');
@@ -128,7 +128,7 @@ async function fetchElevation(lat, lon) {
 
 // Fetch weather from OpenWeather API
 async function fetchWeather(lat, lon) {
-  const apiKey = process.env.VITE_OPENWEATHER_API_KEY;
+  const apiKey = process.env.OPENWEATHERMAP_API_KEY;
   
   if (!apiKey) {
     throw new Error('OpenWeather API key not configured');
@@ -148,7 +148,7 @@ async function fetchWeather(lat, lon) {
 
 // Analyze image with Google Vision API
 async function analyzeImage(imageBase64) {
-  const apiKey = process.env.VITE_GOOGLE_VISION_API_KEY;
+  const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
   
   if (!apiKey) {
     console.warn('Google Vision API key not configured, skipping image analysis');
