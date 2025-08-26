@@ -36,15 +36,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // Prepara i dati per Airtable
+    // Prepara i dati per Airtable (solo campi essenziali)
     const deviceData = {
       device_id: device_id,
       device_name: device_name || `Sonda ${device_id}`,
       mac_address: mac_address,
       firmware_version: firmware_version || '1.0.0',
-      status: 'connected',
-      first_connection: new Date().toISOString(),
-      last_seen: new Date().toISOString()
+      status: 'connected'
     };
 
     console.log('Sending to Airtable:', deviceData);
