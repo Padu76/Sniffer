@@ -416,7 +416,7 @@
             }, 3000);
         }
 
-        // Verifica status sonda ogni 30 secondi
+        // Verifica status sonda ogni 30 secondi (allineato con control.html)
         async function checkHardwareStatus() {
             try {
                 const response = await fetch('https://sniffer-beta.vercel.app/api/device-status?device_id=sniffer_001');
@@ -426,16 +426,35 @@
                 const statusText = document.getElementById('previewStatusText');
                 const hardwareStatus = document.getElementById('hardwareStatus');
                 
-                if (result.success && result.status) {
+                console.log('Homepage status check:', result); // Debug
+                
+                if (response.ok && result.success && result.status) {
+                    // Sonda online e funzionante
                     statusDot.style.background = '#2ecc71';
                     statusText.textContent = 'Sonda Online';
                     hardwareStatus.textContent = '🟢';
+                    
+                    // Aggiorna anche il sensor widget se disponibile
+                    const sensorStatus = document.getElementById('sensorStatus');
+                    if (sensorStatus) {
+                        sensorStatus.textContent = 'Connessa';
+                        sensorStatus.style.color = '#2ecc71';
+                    }
+                    
+                } else if (response.status === 404) {
+                    // Device non trovato/mai connesso
+                    statusDot.style.background = '#f39c12';
+                    statusText.textContent = 'Sonda Mai Connessa';
+                    hardwareStatus.textContent = '🟡';
                 } else {
+                    // Altri errori
                     statusDot.style.background = '#e74c3c';
                     statusText.textContent = 'Sonda Offline';
                     hardwareStatus.textContent = '🔴';
                 }
             } catch (error) {
+                console.error('Errore check hardware status:', error);
+                
                 const statusDot = document.getElementById('previewStatusDot');
                 const statusText = document.getElementById('previewStatusText');
                 const hardwareStatus = document.getElementById('hardwareStatus');
@@ -443,6 +462,13 @@
                 statusDot.style.background = '#e74c3c';
                 statusText.textContent = 'Errore Connessione';
                 hardwareStatus.textContent = '🔴';
+                
+                // Aggiorna anche il sensor widget
+                const sensorStatus = document.getElementById('sensorStatus');
+                if (sensorStatus) {
+                    sensorStatus.textContent = 'Disconnessa';
+                    sensorStatus.style.color = '#e74c3c';
+                }
             }
         }
 
