@@ -65,12 +65,12 @@ async function updateCommandStatus(device_id, action, success, error_message) {
   try {
     // Trova il comando pendente più recente per questo device e action
     const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/device_commands?` +
+      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands?` +
       `filterByFormula=AND({device_id}='${device_id}', {action}='${action}', {status}='pending')&` +
       `sort[0][field]=created_at&sort[0][direction]=desc&maxRecords=1`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
         }
       }
     );
@@ -85,10 +85,10 @@ async function updateCommandStatus(device_id, action, success, error_message) {
       const recordId = result.records[0].id;
       
       // Aggiorna il comando
-      const updateResponse = await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/device_commands/${recordId}`, {
+      const updateResponse = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands/${recordId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -123,10 +123,10 @@ async function logCommandExecution(device_id, action, timestamp, success, error_
       logged_at: new Date().toISOString()
     };
 
-    await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/command_executions`, {
+    await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/command_executions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
+        'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

@@ -91,10 +91,10 @@ export default async function handler(req, res) {
       };
 
       // Salva status su Airtable
-      const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/device_status`, {
+      const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_status`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -137,12 +137,12 @@ export default async function handler(req, res) {
 async function getLatestDeviceStatus(device_id) {
   try {
     const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/device_status?` +
+      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_status?` +
       `filterByFormula={device_id}='${device_id}'&` +
       `sort[0][field]=timestamp&sort[0][direction]=desc&maxRecords=1`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
         }
       }
     );
@@ -188,10 +188,10 @@ async function updateDeviceLastSeen(device_id, current_status) {
   try {
     // Trova il record del device
     const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/devices?filterByFormula={device_id}='${device_id}'`,
+      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/devices?filterByFormula={device_id}='${device_id}'`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
         }
       }
     );
@@ -202,10 +202,10 @@ async function updateDeviceLastSeen(device_id, current_status) {
       const recordId = searchResult.records[0].id;
       
       // Aggiorna last_seen e status
-      await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/devices/${recordId}`, {
+      await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/devices/${recordId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

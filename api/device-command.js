@@ -92,10 +92,10 @@ export default async function handler(req, res) {
       };
 
       // Salva comando su Airtable
-      const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/device_commands`, {
+      const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -137,12 +137,12 @@ async function getDevicePendingCommand(device_id) {
   try {
     // Cerca comandi pendenti per questo device (ordinati per data)
     const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/device_commands?` +
+      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands?` +
       `filterByFormula=AND({device_id}='${device_id}', {status}='pending')&` +
       `sort[0][field]=created_at&sort[0][direction]=asc&maxRecords=1`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`
+          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
         }
       }
     );
