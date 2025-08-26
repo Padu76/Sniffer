@@ -18,10 +18,13 @@ export default async function handler(req, res) {
     }
 
     try {
+      console.log('Getting commands for device:', device_id);
+      
       // Cerca comandi pendenti per questo device
       const command = await getDevicePendingCommand(device_id);
       
       if (command) {
+        console.log('Found pending command:', command);
         return res.status(200).json({
           has_command: true,
           command: {
@@ -32,13 +35,17 @@ export default async function handler(req, res) {
           }
         });
       } else {
+        console.log('No pending commands found');
         return res.status(200).json({
           has_command: false
         });
       }
     } catch (error) {
       console.error('Errore get command:', error);
-      return res.status(500).json({ error: 'Errore interno server' });
+      return res.status(500).json({ 
+        error: 'Errore interno server',
+        details: error.message 
+      });
     }
   }
 
@@ -48,6 +55,7 @@ export default async function handler(req, res) {
     // Se è richiesta da ESP32 (stesso endpoint ma POST per consistency)
     if (device_id && !req.body.action) {
       try {
+        console.log('ESP32 polling commands for:', device_id);
         const command = await getDevicePendingCommand(device_id);
         
         if (command) {
@@ -67,32 +75,44 @@ export default async function handler(req, res) {
         }
       } catch (error) {
         console.error('Errore get command:', error);
-        return res.status(500).json({ error: 'Errore interno server' });
+        return res.status(500).json({ 
+          error: 'Errore interno server',
+          details: error.message 
+        });
       }
     }
 
     // Se è invio comando da Web App
     const { action, target_type } = req.body;
     
+    console.log('Command request from web app:', { device_id, action, target_type });
+    
     if (!device_id || !action) {
       return res.status(400).json({ 
-        error: 'device_id e action sono richiesti' 
+        error: 'device_id e action sono richiesti',
+        received: { device_id, action }
       });
     }
 
     try {
-      // Crea nuovo comando per il device
+      // Crea nuovo comando per il device (solo campi essenziali)
       const commandRecord = {
         device_id: device_id,
         action: action,
         target_type: target_type || 'funghi_porcini',
         status: 'pending',
-        created_at: new Date().toISOString(),
         sent_from: 'web_app'
       };
 
+      console.log('Sending command to Airtable:', commandRecord);
+      console.log('Base ID:', process.env.AIRTABLE_BASE_ID);
+
+      // URL completa per debug
+      const airtableUrl = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands`;
+      console.log('Airtable URL:', airtableUrl);
+
       // Salva comando su Airtable
-      const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands`, {
+      const airtableResponse = await fetch(airtableUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
@@ -105,11 +125,39 @@ export default async function handler(req, res) {
         })
       });
 
+      console.log('Airtable response status:', airtableResponse.status);
+
+      // Leggi la risposta completa
+      const responseText = await airtableResponse.text();
+      console.log('Airtable response body:', responseText);
+
       if (!airtableResponse.ok) {
-        throw new Error('Errore salvataggio comando');
+        return res.status(500).json({
+          error: 'Errore salvataggio comando',
+          details: {
+            status: airtableResponse.status,
+            statusText: airtableResponse.statusText,
+            body: responseText,
+            url: airtableUrl
+          }
+        });
       }
 
-      const result = await airtableResponse.json();
+      // Parse della risposta se OK
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        return res.status(500).json({
+          error: 'Errore parsing risposta Airtable',
+          details: {
+            parseError: parseError.message,
+            responseText: responseText
+          }
+        });
+      }
+
+      console.log('Command saved successfully:', result);
 
       return res.status(200).json({
         success: true,
@@ -122,9 +170,13 @@ export default async function handler(req, res) {
 
     } catch (error) {
       console.error('Errore send command:', error);
+      console.error('Error stack:', error.stack);
       return res.status(500).json({ 
         error: 'Errore invio comando',
-        details: error.message 
+        details: {
+          message: error.message,
+          stack: error.stack
+        }
       });
     }
   }
@@ -135,23 +187,31 @@ export default async function handler(req, res) {
 // Helper per ottenere comando pendente
 async function getDevicePendingCommand(device_id) {
   try {
+    console.log('Searching pending commands for device:', device_id);
+    
     // Cerca comandi pendenti per questo device (ordinati per data)
-    const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands?` +
+    const searchUrl = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_commands?` +
       `filterByFormula=AND({device_id}='${device_id}', {status}='pending')&` +
-      `sort[0][field]=created_at&sort[0][direction]=asc&maxRecords=1`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
-        }
+      `sort[0][field]=created_at&sort[0][direction]=asc&maxRecords=1`;
+    
+    console.log('Search URL:', searchUrl);
+    
+    const searchResponse = await fetch(searchUrl, {
+      headers: {
+        'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
       }
-    );
+    });
 
+    console.log('Search response status:', searchResponse.status);
+    
     if (!searchResponse.ok) {
-      throw new Error('Errore ricerca comandi');
+      const errorText = await searchResponse.text();
+      console.error('Search error response:', errorText);
+      throw new Error('Errore ricerca comandi: ' + errorText);
     }
 
     const result = await searchResponse.json();
+    console.log('Search result:', result);
     
     if (result.records.length > 0) {
       const record = result.records[0];
@@ -166,6 +226,6 @@ async function getDevicePendingCommand(device_id) {
     return null;
   } catch (error) {
     console.error('Errore getDevicePendingCommand:', error);
-    return null;
+    throw error;
   }
 }
