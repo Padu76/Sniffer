@@ -1,114 +1,34 @@
 {
-  "name": "sniffer-iot",
-  "version": "2.0.0",
-  "description": "ESP32 + BME680 Intelligent Odor Detection System",
-  "main": "index.html",
+  "name": "upstarter",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'Static site - no build needed'",
-    "deploy": "vercel --prod",
-    "test": "node test/api-test.js",
-    "lint": "eslint api/**/*.js",
-    "format": "prettier --write .",
-    "db:migrate": "node scripts/migrate.js",
-    "db:seed": "node scripts/seed-test-data.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "pg": "^8.11.3",
-    "cors": "^2.8.5"
+    "@anthropic-ai/sdk": "^0.24.3",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "airtable": "^0.12.2",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8",
+    "eslint-config-next": "15.3.5",
+    "lucide-react": "^0.400.0",
+    "mammoth": "^1.6.0",
+    "next": "15.3.5",
+    "next-auth": "^4.24.7",
+    "postcss": "^8.4.31",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-dropzone": "^14.2.3",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
   },
-  "devDependencies": {
-    "vercel": "^32.5.0",
-    "eslint": "^8.50.0",
-    "prettier": "^3.0.3",
-    "nodemon": "^3.0.1"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-username/sniffer-iot"
-  },
-  "keywords": [
-    "iot",
-    "esp32",
-    "bme680",
-    "sensor",
-    "odor-detection",
-    "machine-learning",
-    "vercel",
-    "neon",
-    "postgresql"
-  ],
-  "author": {
-    "name": "Sniffer Team",
-    "email": "info@sniffer-project.com"
-  },
-  "license": "MIT",
-  "vercel": {
-    "functions": {
-      "api/*.js": {
-        "runtime": "nodejs18.x",
-        "maxDuration": 30
-      }
-    },
-    "rewrites": [
-      {
-        "source": "/api/(.*)",
-        "destination": "/api/$1"
-      }
-    ],
-    "headers": [
-      {
-        "source": "/api/(.*)",
-        "headers": [
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "*"
-          },
-          {
-            "key": "Access-Control-Allow-Methods",
-            "value": "GET, POST, OPTIONS"
-          },
-          {
-            "key": "Access-Control-Allow-Headers",
-            "value": "Content-Type"
-          }
-        ]
-      }
-    ]
-  },
-  "config": {
-    "database": "neon-postgresql",
-    "api": {
-      "endpoints": [
-        "/api/pair-device",
-        "/api/device-command", 
-        "/api/device-status",
-        "/api/sensor-data",
-        "/api/command-executed",
-        "/api/analyze",
-        "/api/detect",
-        "/api/save-model",
-        "/api/start-training",
-        "/api/feedback",
-        "/api/dashboard",
-        "/api/receive-data"
-      ]
-    },
-    "targets": {
-      "simple": ["caffe", "limone", "alcool", "aceto", "vaniglia"],
-      "complex": ["funghi_porcini", "tartufi", "erbe_medicinali"],
-      "test": ["caffè_espresso", "limone_fresco", "alcool_isopropilico"]
-    },
-    "hardware": {
-      "esp32": {
-        "device_id": "sniffer_001",
-        "firmware": "1.2.0",
-        "sensor": "BME680",
-        "connection": "SPI"
-      }
-    }
+  "overrides": {
+    "lucide-react": "^0.400.0"
   }
 }
