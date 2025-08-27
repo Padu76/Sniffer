@@ -1,6 +1,13 @@
-// /api/sensor-data.js
+// /api/sensor-data.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // CORS per ESP32
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,125 +20,72 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const client = await pool.connect();
+
   try {
     const { 
       device_id, 
       timestamp, 
-      data, 
-      location, 
-      scan_type = 'realtime',
-      session_id 
+      data
     } = req.body;
 
-    // Validazione dati essenziali
+    console.log('Sensor data request:', { device_id, timestamp });
+
+    // Validation
     if (!device_id || !data) {
       return res.status(400).json({ 
-        error: 'device_id e data sono richiesti' 
+        error: 'device_id e data sono richiesti',
+        received: { device_id, data }
       });
     }
 
-    // Prepara record per Airtable
-    const sensorRecord = {
-      device_id: device_id,
-      timestamp: timestamp || new Date().toISOString(),
-      scan_type: scan_type,
-      session_id: session_id,
-      
-      // Dati BME688
-      gas_resistance: data.gas_resistance,
-      temperature: data.temperature,
-      humidity: data.humidity, 
-      pressure: data.pressure,
-      voc_index: data.voc_index,
-      
-      // Dati GPS (se disponibili)
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      altitude: location?.altitude,
-      
-      // Analisi AI (se presente)
-      ai_probability: data.ai_probability,
-      target_detected: data.target_detected,
-      confidence_level: data.confidence_level,
-      
-      // Raw data JSON per debugging
-      raw_data: JSON.stringify(data)
-    };
+    // Insert sensor reading with correct schema
+    const insertQuery = `
+      INSERT INTO sensor_readings (
+        device_id, timestamp, temperature, humidity, 
+        gas_resistance, voc_equivalent, raw_sensor_data
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    
+    const insertResult = await client.query(insertQuery, [
+      device_id,
+      timestamp || new Date().toISOString(),
+      data.temperature || 0,
+      data.humidity || 0,
+      data.gas_resistance || 0,
+      data.voc_equivalent || 0,
+      JSON.stringify(data)
+    ]);
 
-    // Salva su Airtable tabella "sensor_readings"
-    const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/sensor_readings`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        records: [{
-          fields: sensorRecord
-        }]
-      })
-    });
+    const sensorReading = insertResult.rows[0];
+    console.log('Sensor reading saved successfully:', sensorReading.id);
 
-    if (!airtableResponse.ok) {
-      const errorDetails = await airtableResponse.text();
-      throw new Error(`Airtable error: ${errorDetails}`);
-    }
-
-    const result = await airtableResponse.json();
-
-    // Aggiorna last_seen del device
-    await updateDeviceLastSeen(device_id);
+    // Update device last_seen
+    const updateQuery = `
+      UPDATE devices 
+      SET last_seen = NOW(), status = 'active'
+      WHERE device_id = $1
+    `;
+    
+    await client.query(updateQuery, [device_id]);
 
     return res.status(200).json({
       success: true,
       message: 'Dati sensore salvati',
-      record_id: result.records[0].id,
-      timestamp: timestamp || new Date().toISOString()
+      record_id: sensorReading.id,
+      timestamp: sensorReading.timestamp,
+      database: 'Neon PostgreSQL'
     });
 
   } catch (error) {
-    console.error('Errore sensor-data:', error);
+    console.error('Error in sensor-data:', error);
     return res.status(500).json({ 
       error: 'Errore salvataggio dati sensore',
-      details: error.message 
+      details: error.message
     });
-  }
-}
-
-// Funzione helper per aggiornare last_seen del device
-async function updateDeviceLastSeen(device_id) {
-  try {
-    // Prima trova il record del device
-    const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/devices?filterByFormula={device_id}='${device_id}'`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`
-        }
-      }
-    );
-
-    const searchResult = await searchResponse.json();
-    
-    if (searchResult.records.length > 0) {
-      const recordId = searchResult.records[0].id;
-      
-      // Aggiorna last_seen
-      await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/devices/${recordId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fields: {
-            last_seen: new Date().toISOString(),
-            status: 'active'
-          }
-        })
-      });
-    }
-  } catch (error) {
-    console.log('Errore aggiornamento last_seen:', error);
+  } finally {
+    client.release();
   }
 }

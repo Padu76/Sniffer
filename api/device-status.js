@@ -1,6 +1,13 @@
-// /api/device-status.js
+// /api/device-status.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // CORS per ESP32 e Web App
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -9,214 +16,106 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method === 'GET') {
-    // Web App richiede status di un device
-    const { device_id } = req.query;
-    
-    if (!device_id) {
-      return res.status(400).json({ error: 'device_id richiesto' });
-    }
+  const client = await pool.connect();
 
-    try {
-      // Ottieni ultimo status del device
-      const deviceStatus = await getLatestDeviceStatus(device_id);
+  try {
+    if (req.method === 'GET') {
+      // Web App requests device status
+      const { device_id } = req.query;
       
-      if (!deviceStatus) {
+      if (!device_id) {
+        return res.status(400).json({ error: 'device_id richiesto' });
+      }
+
+      console.log('Getting status for device:', device_id);
+      
+      // Get latest status
+      const query = `
+        SELECT * FROM device_status 
+        WHERE device_id = $1 
+        ORDER BY updated_at DESC 
+        LIMIT 1
+      `;
+      
+      const result = await client.query(query, [device_id]);
+
+      if (result.rows.length === 0) {
         return res.status(404).json({ 
           error: 'Device non trovato o mai connesso',
           device_id: device_id 
         });
       }
 
+      const statusData = result.rows[0];
+
       return res.status(200).json({
         success: true,
         device_id: device_id,
-        status: deviceStatus,
-        last_updated: deviceStatus.timestamp
-      });
-
-    } catch (error) {
-      console.error('Errore get device status:', error);
-      return res.status(500).json({ 
-        error: 'Errore recupero status',
-        details: error.message 
-      });
-    }
-  }
-
-  if (req.method === 'POST') {
-    // ESP32 invia aggiornamento status
-    const { 
-      device_id, 
-      timestamp, 
-      status, 
-      wifi_rssi, 
-      uptime, 
-      device_state,
-      current_sensor_data 
-    } = req.body;
-
-    if (!device_id || !status) {
-      return res.status(400).json({ 
-        error: 'device_id e status sono richiesti' 
+        status: statusData.current_status,
+        timestamp: statusData.updated_at,
+        raw_device_state: statusData.raw_device_state,
+        database: 'Neon PostgreSQL'
       });
     }
 
-    try {
-      // Prepara record status per Airtable
-      const statusRecord = {
-        device_id: device_id,
-        timestamp: timestamp || new Date().toISOString(),
-        status: status, // online, offline, error
-        wifi_rssi: wifi_rssi || 0,
-        uptime_ms: uptime || 0,
-        
-        // Stato device (training, scanning, etc.)
-        training_active: device_state?.training_active || false,
-        scanning_active: device_state?.scanning_active || false,
-        current_target: device_state?.current_target || '',
-        training_session: device_state?.training_session || '',
-        training_phase: device_state?.training_phase || 0,
-        sample_count: device_state?.sample_count || 0,
-        
-        // Dati sensore attuali (se presenti)
-        current_gas_resistance: current_sensor_data?.gas_resistance || 0,
-        current_temperature: current_sensor_data?.temperature || 0,
-        current_humidity: current_sensor_data?.humidity || 0,
-        current_voc_index: current_sensor_data?.voc_index || 0,
-        
-        // Raw data per debugging
-        raw_device_state: JSON.stringify(device_state || {}),
-        raw_sensor_data: JSON.stringify(current_sensor_data || {})
-      };
+    if (req.method === 'POST') {
+      // ESP32 sends status update
+      const { 
+        device_id, 
+        current_status,
+        raw_device_state
+      } = req.body;
 
-      // Salva status su Airtable
-      const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_status`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          records: [{
-            fields: statusRecord
-          }]
-        })
-      });
-
-      if (!airtableResponse.ok) {
-        const errorText = await airtableResponse.text();
-        throw new Error(`Airtable error: ${errorText}`);
+      if (!device_id || !current_status) {
+        return res.status(400).json({ 
+          error: 'device_id e current_status sono richiesti' 
+        });
       }
 
-      const result = await airtableResponse.json();
+      console.log('Updating device status:', { device_id, current_status });
+      
+      // Insert new status record
+      const insertQuery = `
+        INSERT INTO device_status (device_id, current_status, raw_device_state, updated_at)
+        VALUES ($1, $2, $3, NOW())
+        RETURNING *
+      `;
+      
+      const insertResult = await client.query(insertQuery, [
+        device_id,
+        current_status,
+        JSON.stringify(raw_device_state || {})
+      ]);
 
-      // Aggiorna anche la tabella devices con last_seen
-      await updateDeviceLastSeen(device_id, status);
+      // Update device last_seen
+      const updateQuery = `
+        UPDATE devices 
+        SET last_seen = NOW(), status = $2
+        WHERE device_id = $1
+      `;
+      
+      await client.query(updateQuery, [device_id, current_status]);
+
+      const statusRecord = insertResult.rows[0];
+      console.log('Device status updated successfully:', statusRecord.id);
 
       return res.status(200).json({
         success: true,
         message: 'Status aggiornato',
-        record_id: result.records[0].id,
-        timestamp: statusRecord.timestamp
-      });
-
-    } catch (error) {
-      console.error('Errore update device status:', error);
-      return res.status(500).json({ 
-        error: 'Errore aggiornamento status',
-        details: error.message 
+        record_id: statusRecord.id,
+        timestamp: statusRecord.updated_at
       });
     }
-  }
 
-  return res.status(405).json({ error: 'Method not allowed' });
-}
+    return res.status(405).json({ error: 'Method not allowed' });
 
-// Helper per ottenere ultimo status device
-async function getLatestDeviceStatus(device_id) {
-  try {
-    const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/device_status?` +
-      `filterByFormula={device_id}='${device_id}'&` +
-      `sort[0][field]=timestamp&sort[0][direction]=desc&maxRecords=1`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
-        }
-      }
-    );
-
-    if (!searchResponse.ok) {
-      throw new Error('Errore ricerca status');
-    }
-
-    const result = await searchResponse.json();
-    
-    if (result.records.length > 0) {
-      const record = result.records[0].fields;
-      
-      return {
-        status: record.status,
-        timestamp: record.timestamp,
-        wifi_rssi: record.wifi_rssi,
-        uptime: record.uptime_ms,
-        training_active: record.training_active,
-        scanning_active: record.scanning_active,
-        current_target: record.current_target,
-        training_session: record.training_session,
-        training_phase: record.training_phase,
-        sample_count: record.sample_count,
-        sensor_data: {
-          gas_resistance: record.current_gas_resistance,
-          temperature: record.current_temperature,
-          humidity: record.current_humidity,
-          voc_index: record.current_voc_index
-        }
-      };
-    }
-    
-    return null;
   } catch (error) {
-    console.error('Errore getLatestDeviceStatus:', error);
-    return null;
-  }
-}
-
-// Helper per aggiornare last_seen nella tabella devices
-async function updateDeviceLastSeen(device_id, current_status) {
-  try {
-    // Trova il record del device
-    const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/devices?filterByFormula={device_id}='${device_id}'`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`
-        }
-      }
-    );
-
-    const searchResult = await searchResponse.json();
-    
-    if (searchResult.records.length > 0) {
-      const recordId = searchResult.records[0].id;
-      
-      // Aggiorna last_seen e status
-      await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/devices/${recordId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fields: {
-            last_seen: new Date().toISOString(),
-            status: current_status
-          }
-        })
-      });
-    }
-  } catch (error) {
-    console.log('Errore aggiornamento device last_seen:', error);
+    console.error('Error in device-status:', error);
+    return res.status(500).json({
+      error: 'Errore interno server',
+      details: error.message
+    });
+  } finally {
+    client.release();
   }
 }
