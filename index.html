@@ -226,18 +226,65 @@
             </div>
         </div>
 
-        <!-- Hardware Info Box -->
-        <div id="hardwareInfoBox" class="alert alert-info" role="alert">
-            <h6 class="alert-heading">
-                <i class="bi bi-info-circle"></i> Modalità Test Domestici
-            </h6>
-            <p class="mb-2">Per testare la sonda ESP32 in casa:</p>
-            <ul class="mb-0">
-                <li>Posiziona diversi odori su piccoli contenitori</li>
-                <li>Avvicina la sonda ESP32 a ciascun odore</li>
-                <li>Seleziona il target corrispondente dall'app</li>
-                <li>Osserva i valori VOC e gas resistance in tempo reale</li>
-            </ul>
+        <!-- Quick Test Selection Box -->
+        <div id="quickTestBox" class="card border-info mb-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-lightning-charge"></i> Test Rapido - Odori Semplici
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">Inizia con odori facilmente riconoscibili per testare il sistema ESP32</p>
+                
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100 quick-test-card" data-target="caffe" style="cursor: pointer;">
+                            <div class="card-body text-center p-3">
+                                <div style="font-size: 2rem; margin-bottom: 8px;">☕</div>
+                                <h6 class="card-title mb-1">Caffè</h6>
+                                <small class="text-muted">Intenso e distintivo</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100 quick-test-card" data-target="profumo" style="cursor: pointer;">
+                            <div class="card-body text-center p-3">
+                                <div style="font-size: 2rem; margin-bottom: 8px;">🌸</div>
+                                <h6 class="card-title mb-1">Profumo</h6>
+                                <small class="text-muted">Fragranza floreale</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100 quick-test-card" data-target="limone" style="cursor: pointer;">
+                            <div class="card-body text-center p-3">
+                                <div style="font-size: 2rem; margin-bottom: 8px;">🍋</div>
+                                <h6 class="card-title mb-1">Limone</h6>
+                                <small class="text-muted">Agrume fresco</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100 quick-test-card" data-target="menta" style="cursor: pointer;">
+                            <div class="card-body text-center p-3">
+                                <div style="font-size: 2rem; margin-bottom: 8px;">🌿</div>
+                                <h6 class="card-title mb-1">Menta</h6>
+                                <small class="text-muted">Aroma mentolato</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <button id="startQuickTest" class="btn btn-info btn-sm" disabled>
+                        <i class="bi bi-play-circle"></i> Avvia Test Rapido
+                    </button>
+                    <small class="text-muted ms-2">Seleziona un odore per iniziare</small>
+                </div>
+            </div>
         </div>
 
         <!-- Action Buttons -->
