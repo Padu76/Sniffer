@@ -1,6 +1,12 @@
-// /api/save-model.js
+// /api/save-model.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // CORS per ESP32
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,6 +19,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const client = await pool.connect();
+
   try {
     const { 
       device_id,
@@ -23,74 +31,59 @@ export default async function handler(req, res) {
       sample_counts
     } = req.body;
 
-    // Validazione
     if (!device_id || !session_id || !model_data) {
       return res.status(400).json({ 
         error: 'device_id, session_id e model_data sono richiesti' 
       });
     }
 
-    // Prepara record modello per Airtable
-    const modelRecord = {
-      device_id: device_id,
-      session_id: session_id,
-      target_type: target_type,
-      model_name: `${target_type}_${device_id}_${Date.now()}`,
-      
-      // Dati modello
-      model_signature: JSON.stringify(model_data.signature),
-      baseline_stats: JSON.stringify(model_data.baseline),
-      positive_stats: JSON.stringify(model_data.positive), 
-      negative_stats: JSON.stringify(model_data.negative),
-      
-      // Metriche qualità
-      accuracy_score: accuracy_score || 0,
-      confidence_threshold: model_data.threshold || 0.7,
-      
-      // Contatori campioni
-      baseline_samples: sample_counts?.baseline || 0,
-      positive_samples: sample_counts?.positive || 0,
-      negative_samples: sample_counts?.negative || 0,
-      
-      // Metadata
-      created_at: new Date().toISOString(),
-      is_active: true,
-      version: model_data.version || '1.0'
-    };
+    const model_name = `${target_type}_${device_id}_${Date.now()}`;
 
-    // Salva modello su Airtable
-    const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/trained_models`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        records: [{
-          fields: modelRecord
-        }]
-      })
-    });
+    // Insert model into trained_models table
+    const insertModelQuery = `
+      INSERT INTO trained_models (
+        device_id, session_id, target_type, model_name,
+        model_signature, baseline_stats, positive_stats, negative_stats,
+        accuracy_score, confidence_threshold,
+        baseline_samples, positive_samples, negative_samples,
+        is_active, version, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+      RETURNING *
+    `;
 
-    if (!airtableResponse.ok) {
-      throw new Error('Errore salvataggio modello');
-    }
+    const modelResult = await client.query(insertModelQuery, [
+      device_id,
+      session_id,
+      target_type,
+      model_name,
+      JSON.stringify(model_data.signature),
+      JSON.stringify(model_data.baseline),
+      JSON.stringify(model_data.positive),
+      JSON.stringify(model_data.negative),
+      accuracy_score || 0,
+      model_data.threshold || 0.7,
+      sample_counts?.baseline || 0,
+      sample_counts?.positive || 0,
+      sample_counts?.negative || 0,
+      true,
+      model_data.version || '1.0'
+    ]);
 
-    const result = await airtableResponse.json();
+    const savedModel = modelResult.rows[0];
 
-    // Aggiorna training session a "completed"
-    await updateTrainingSession(session_id, {
+    // Update training session to completed
+    await updateTrainingSession(client, session_id, {
       status: 'completed',
       end_time: new Date().toISOString(),
-      model_id: result.records[0].id,
+      model_id: savedModel.id.toString(),
       accuracy_score: accuracy_score
     });
 
     return res.status(200).json({
       success: true,
       message: 'Modello salvato con successo',
-      model_id: result.records[0].id,
-      model_name: modelRecord.model_name,
+      model_id: savedModel.id,
+      model_name: model_name,
       accuracy: accuracy_score,
       ready_for_detection: true,
       next_steps: [
@@ -106,39 +99,26 @@ export default async function handler(req, res) {
       error: 'Errore salvataggio modello',
       details: error.message 
     });
+  } finally {
+    client.release();
   }
 }
 
-// Helper per aggiornare training session
-async function updateTrainingSession(session_id, updateData) {
+async function updateTrainingSession(client, session_id, updateData) {
   try {
-    // Trova il record della session
-    const searchResponse = await fetch(
-      `https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/training_sessions?filterByFormula={session_id}='${session_id}'`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`
-        }
-      }
-    );
-
-    const searchResult = await searchResponse.json();
+    const updateQuery = `
+      UPDATE training_sessions 
+      SET status = $2, end_time = $3, model_id = $4, accuracy_score = $5
+      WHERE session_id = $1
+    `;
     
-    if (searchResult.records.length > 0) {
-      const recordId = searchResult.records[0].id;
-      
-      // Aggiorna record
-      await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/training_sessions/${recordId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fields: updateData
-        })
-      });
-    }
+    await client.query(updateQuery, [
+      session_id,
+      updateData.status,
+      updateData.end_time,
+      updateData.model_id,
+      updateData.accuracy_score
+    ]);
   } catch (error) {
     console.log('Errore aggiornamento training session:', error);
   }

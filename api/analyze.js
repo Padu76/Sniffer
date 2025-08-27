@@ -1,5 +1,12 @@
+// /api/analyze.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -8,20 +15,17 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  const client = await pool.connect();
+
   try {
     console.log('API analyze called with method:', req.method);
-    console.log('Request body:', req.body);
 
-    // Handle environment data request (elevation + weather)
     if (req.body && req.body.action === 'get_environment') {
       const { latitude, longitude } = req.body;
       
       console.log(`Getting environment data for: ${latitude}, ${longitude}`);
       
-      // Get elevation from Google Elevation API
       const elevation = await getElevation(latitude, longitude);
-      
-      // Get weather from OpenWeather API
       const weather = await getWeather(latitude, longitude);
       
       return res.status(200).json({
@@ -31,23 +35,19 @@ export default async function handler(req, res) {
       });
     }
 
-    // Handle full analysis request
     if (req.method === 'POST') {
       const { target, latitude, longitude, photo, sensorData, timestamp } = req.body;
       
       console.log(`Full analysis for target: ${target} at ${latitude}, ${longitude}`);
       
-      // Get environment data
       const elevation = await getElevation(latitude, longitude);
       const weather = await getWeather(latitude, longitude);
       
-      // Analyze photo with Google Vision if provided
       let visionResults = null;
       if (photo) {
         visionResults = await analyzePhotoWithVision(photo);
       }
       
-      // Analyze with Claude AI
       const claudeAnalysis = await analyzeWithClaude({
         target,
         latitude,
@@ -59,8 +59,7 @@ export default async function handler(req, res) {
         timestamp
       });
       
-      // Save to Airtable
-      await saveToAirtable({
+      await saveToNeon(client, {
         target,
         latitude,
         longitude,
@@ -83,10 +82,11 @@ export default async function handler(req, res) {
       error: 'Internal server error',
       message: error.message 
     });
+  } finally {
+    client.release();
   }
 }
 
-// Get elevation from Google Elevation API
 async function getElevation(lat, lng) {
   try {
     const apiKey = process.env.GOOGLE_ELEVATION_API_KEY;
@@ -109,12 +109,10 @@ async function getElevation(lat, lng) {
     }
   } catch (error) {
     console.error('Elevation API error:', error);
-    // Fallback to mock data for Lessinia area
-    return Math.floor(Math.random() * 800) + 400; // 400-1200m
+    return Math.floor(Math.random() * 800) + 400;
   }
 }
 
-// Get weather from OpenWeather API
 async function getWeather(lat, lng) {
   try {
     const apiKey = process.env.OPENWEATHERMAP_API_KEY;
@@ -147,19 +145,17 @@ async function getWeather(lat, lng) {
     }
   } catch (error) {
     console.error('Weather API error:', error);
-    // Fallback to mock weather
     const mockWeather = ['Sole, 24°C', 'Nuvoloso, 19°C', 'Pioggia leggera, 16°C'];
     return {
       description: mockWeather[Math.floor(Math.random() * 3)],
-      temperature: Math.floor(Math.random() * 10) + 15, // 15-25°C
-      humidity: Math.floor(Math.random() * 30) + 50,     // 50-80%
-      pressure: Math.floor(Math.random() * 50) + 1000,   // 1000-1050hPa
+      temperature: Math.floor(Math.random() * 10) + 15,
+      humidity: Math.floor(Math.random() * 30) + 50,
+      pressure: Math.floor(Math.random() * 50) + 1000,
       condition: 'unknown'
     };
   }
 }
 
-// Analyze photo with Google Vision API
 async function analyzePhotoWithVision(photoBase64) {
   try {
     const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY || process.env.VITE_GOOGLE_VISION_API_KEY;
@@ -168,7 +164,6 @@ async function analyzePhotoWithVision(photoBase64) {
       return null;
     }
 
-    // Remove data URL prefix if present
     const base64Image = photoBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
     const url = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
@@ -219,7 +214,6 @@ async function analyzePhotoWithVision(photoBase64) {
   }
 }
 
-// Analyze with Claude AI
 async function analyzeWithClaude(data) {
   try {
     const apiKey = process.env.CLAUDE_API_KEY;
@@ -230,7 +224,6 @@ async function analyzeWithClaude(data) {
 
     const { target, latitude, longitude, elevation, weather, visionResults, sensorData } = data;
     
-    // Build comprehensive prompt for Claude
     let prompt = `Analizza le condizioni per la ricerca di ${target} in base a questi dati reali:
 
 POSIZIONE:
@@ -295,7 +288,6 @@ Rispondi in formato JSON con: probability, analysis, suggestions, species`;
       const content = claudeData.content[0].text;
       
       try {
-        // Try to parse JSON response
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const analysis = JSON.parse(jsonMatch[0]);
@@ -312,7 +304,6 @@ Rispondi in formato JSON con: probability, analysis, suggestions, species`;
         console.log('Claude response not JSON, using text');
       }
       
-      // If JSON parsing fails, extract data from text
       const probability = extractNumberFromText(content, 'probabilità') || 50;
       
       return {
@@ -332,11 +323,9 @@ Rispondi in formato JSON con: probability, analysis, suggestions, species`;
   }
 }
 
-// Generate mock analysis as fallback
 function generateMockAnalysis(data) {
   const { target, latitude, longitude, elevation, weather } = data;
   
-  // Determine if we're in Lessinia area
   const isLessinia = latitude >= 45.45 && latitude <= 45.65 && 
                      longitude >= 10.85 && longitude <= 11.15;
   
@@ -349,23 +338,22 @@ function generateMockAnalysis(data) {
     analysis += `nella zona della Lessinia. `;
     
     if (target === 'tartufi') {
-      probability = Math.floor(Math.random() * 20) + 70; // 70-90%
-      analysis += `🎯 ZONA OTTIMALE per Tartufo Nero Estivo! La Lessinia in agosto è il periodo di massima maturazione. `;
+      probability = Math.floor(Math.random() * 20) + 70;
+      analysis += `Zona ottimale per Tartufo Nero Estivo! La Lessinia in agosto è il periodo di massima maturazione. `;
       analysis += `Terreno calcareo-carsico ideale, altitudine ${elevation}m perfetta per la specie. `;
       suggestions = `Concentrati sulle doline carsiche tra Bosco Chiesanuova ed Erbezzo. Cerca sotto noccioli e carpini. `;
       species = ['Scorzone (Tartufo Nero Estivo)', 'Tartufo Nero Uncinato'];
     } else if (target === 'funghi') {
-      probability = Math.floor(Math.random() * 20) + 60; // 60-80%
+      probability = Math.floor(Math.random() * 20) + 60;
       analysis += `Condizioni discrete per funghi estivi. In Lessinia ad agosto trova principalmente Porcini Estivi nei boschi di faggio. `;
       suggestions = `Esplora boschi di faggio tra 800-1300m. Controlla zone ombreggiate dopo temporali. `;
       species = ['Porcini Estivi', 'Gallinacci', 'Russule'];
     }
   } else {
-    probability = Math.floor(Math.random() * 30) + 40; // 40-70%
+    probability = Math.floor(Math.random() * 30) + 40;
     analysis += `nella zona geografica corrente (${latitude.toFixed(3)}, ${longitude.toFixed(3)}). `;
   }
   
-  // Weather influence
   if (typeof weather === 'object') {
     if (weather.condition === 'rain') {
       probability += 15;
@@ -390,56 +378,37 @@ function generateMockAnalysis(data) {
   };
 }
 
-// Save analysis to Airtable
-async function saveToAirtable(data) {
+async function saveToNeon(client, data) {
   try {
-    const token = process.env.VITE_AIRTABLE_TOKEN;
-    const baseId = 'app70ymOnJLKk19B9';
-    
-    if (!token) {
-      console.log('Airtable token not found, skipping save');
-      return;
-    }
+    const insertQuery = `
+      INSERT INTO scansioni (
+        device_id, target, latitude, longitude, elevation,
+        weather_description, ai_result, ai_score, voc_value, 
+        humidity_value, timestamp
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      RETURNING id
+    `;
 
-    const record = {
-      fields: {
-        Target: data.target,
-        Latitudine: data.latitude,
-        Longitudine: data.longitude,
-        Altitudine: data.elevation,
-        Meteo: typeof data.weather === 'object' ? data.weather.description : data.weather,
-        'Risultato_AI': data.analysis.analysis || 'Analisi completata',
-        'Score_Fungo': data.analysis.probability,
-        'Data_Ora': data.timestamp || new Date().toISOString(),
-        VOC: data.sensorData?.voc || null,
-        Umidità: typeof data.weather === 'object' ? data.weather.humidity : null
-      }
-    };
+    const result = await client.query(insertQuery, [
+      'web_app',
+      data.target,
+      data.latitude,
+      data.longitude,
+      data.elevation,
+      typeof data.weather === 'object' ? data.weather.description : data.weather,
+      data.analysis.analysis || 'Analisi completata',
+      data.analysis.probability,
+      data.sensorData?.voc || null,
+      typeof data.weather === 'object' ? data.weather.humidity : null
+    ]);
 
-    const url = `https://api.airtable.com/v0/${baseId}/scansioni`;
-    
-    console.log('Saving to Airtable...');
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(record)
-    });
-
-    if (response.ok) {
-      console.log('Successfully saved to Airtable');
-    } else {
-      throw new Error(`Airtable error: ${response.status}`);
-    }
+    console.log('Analysis saved to Neon:', result.rows[0].id);
 
   } catch (error) {
-    console.error('Airtable save error:', error);
+    console.error('Neon save error:', error);
   }
 }
 
-// Helper function to extract numbers from text
 function extractNumberFromText(text, keyword) {
   const regex = new RegExp(`${keyword}[^\\d]*(\\d+)`, 'i');
   const match = text.match(regex);

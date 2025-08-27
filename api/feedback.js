@@ -1,18 +1,25 @@
+// /api/feedback.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const client = await pool.connect();
 
   try {
     const {
@@ -33,8 +40,7 @@ export default async function handler(req, res) {
 
     console.log('Processing feedback:', { scanId, found, predicted });
 
-    // Save feedback to Airtable
-    const feedbackRecord = await saveFeedbackToAirtable({
+    const feedbackId = await saveFeedbackToNeon(client, {
       scanId,
       found,
       predicted,
@@ -46,11 +52,8 @@ export default async function handler(req, res) {
       timestamp
     });
 
-    // Calculate zone accuracy
-    const zoneAccuracy = await calculateZoneAccuracy(lat, lon);
-
-    // Update ML model weights (simplified version)
-    await updateMLWeights({
+    const zoneAccuracy = await calculateZoneAccuracy(client, lat, lon);
+    await updateMLWeights(client, {
       lat,
       lon,
       elevation,
@@ -60,103 +63,80 @@ export default async function handler(req, res) {
       analysis
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      feedbackId: feedbackRecord?.id,
+      feedbackId: feedbackId,
       accuracy: zoneAccuracy,
       message: 'Feedback salvato con successo'
     });
 
   } catch (error) {
     console.error('Error processing feedback:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Errore nel salvataggio feedback',
       details: error.message
     });
+  } finally {
+    client.release();
   }
 }
 
-// Save feedback to Airtable
-async function saveFeedbackToAirtable(data) {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'feedback'; // New table for feedback
-  
-  if (!token) {
-    console.warn('Airtable token not configured, skipping feedback save');
-    return null;
-  }
-
+async function saveFeedbackToNeon(client, data) {
   try {
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fields: {
-          'Scan_ID': data.scanId,
-          'Found_Mushrooms': data.found,
-          'Predicted_Probability': data.predicted,
-          'Latitudine': data.lat,
-          'Longitudine': data.lon,
-          'Altitudine': data.elevation,
-          'Meteo': data.weather,
-          'Analisi_Completa': JSON.stringify(data.analysis),
-          'Timestamp': data.timestamp,
-          'Accuracy': calculateAccuracy(data.predicted, data.found),
-          'Zone_Hash': generateZoneHash(data.lat, data.lon),
-          'Season': getCurrentSeason(),
-          'Weather_Category': categorizeWeather(data.weather)
-        }
-      })
-    });
+    const insertQuery = `
+      INSERT INTO feedback (
+        scan_id, found_mushrooms, predicted_probability,
+        latitude, longitude, elevation, weather_description,
+        complete_analysis, timestamp, accuracy, zone_hash,
+        season, weather_category
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING id
+    `;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Airtable feedback error:', errorText);
-      throw new Error(`Airtable API error: ${response.status}`);
-    }
+    const result = await client.query(insertQuery, [
+      data.scanId,
+      data.found,
+      data.predicted,
+      data.lat,
+      data.lon,
+      data.elevation,
+      data.weather,
+      JSON.stringify(data.analysis),
+      data.timestamp || new Date().toISOString(),
+      calculateAccuracy(data.predicted, data.found),
+      generateZoneHash(data.lat, data.lon),
+      getCurrentSeason(),
+      categorizeWeather(data.weather)
+    ]);
 
-    const result = await response.json();
-    console.log('Feedback saved to Airtable:', result.id);
-    return result;
+    console.log('Feedback saved to Neon:', result.rows[0].id);
+    return result.rows[0].id;
 
   } catch (error) {
-    console.error('Airtable feedback save error:', error);
+    console.error('Neon feedback save error:', error);
     return null;
   }
 }
 
-// Calculate accuracy for this specific prediction
 function calculateAccuracy(predicted, found) {
-  // Simple accuracy calculation
-  // If predicted > 50% and found = true, or predicted <= 50% and found = false, it's accurate
   const prediction = predicted > 50;
   return prediction === found ? 100 : 0;
 }
 
-// Generate zone hash for grouping nearby locations
 function generateZoneHash(lat, lon) {
-  // Round to ~100m precision for zone grouping
   const zoneLat = Math.round(lat * 1000) / 1000;
   const zoneLon = Math.round(lon * 1000) / 1000;
   return `${zoneLat},${zoneLon}`;
 }
 
-// Get current season
 function getCurrentSeason() {
-  const month = new Date().getMonth() + 1; // 1-12
+  const month = new Date().getMonth() + 1;
   if (month >= 3 && month <= 5) return 'Primavera';
   if (month >= 6 && month <= 8) return 'Estate';
   if (month >= 9 && month <= 11) return 'Autunno';
   return 'Inverno';
 }
 
-// Categorize weather for ML
 function categorizeWeather(weather) {
   if (!weather) return 'Unknown';
   
@@ -168,44 +148,23 @@ function categorizeWeather(weather) {
   return 'Other';
 }
 
-// Calculate zone accuracy based on historical data
-async function calculateZoneAccuracy(lat, lon) {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'feedback';
-  
-  if (!token) {
-    return null;
-  }
-
+async function calculateZoneAccuracy(client, lat, lon) {
   try {
     const zoneHash = generateZoneHash(lat, lon);
     
-    // Get all feedback for this zone
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula={Zone_Hash}='${zoneHash}'`;
+    const query = `
+      SELECT accuracy FROM feedback 
+      WHERE zone_hash = $1
+    `;
     
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable query error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const records = data.records || [];
+    const result = await client.query(query, [zoneHash]);
+    const records = result.rows;
 
     if (records.length === 0) {
-      return null; // No historical data yet
+      return null;
     }
 
-    // Calculate accuracy percentage
-    const accurateCount = records.filter(record => 
-      record.fields.Accuracy === 100
-    ).length;
-
+    const accurateCount = records.filter(record => record.accuracy === 100).length;
     const accuracy = (accurateCount / records.length) * 100;
     
     console.log(`Zone accuracy: ${accuracy.toFixed(1)}% (${accurateCount}/${records.length})`);
@@ -217,37 +176,23 @@ async function calculateZoneAccuracy(lat, lon) {
   }
 }
 
-// Update ML model weights (simplified version)
-async function updateMLWeights(data) {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'ml_weights'; // New table for ML weights
-  
-  if (!token) {
-    console.warn('Airtable token not configured, skipping ML update');
-    return null;
-  }
-
+async function updateMLWeights(client, data) {
   try {
-    // Simple ML logic: adjust weights based on feedback
+    const zoneHash = generateZoneHash(data.lat, data.lon);
+    const existingWeights = await getExistingWeights(client, zoneHash);
+
     const weights = {
       elevation_weight: calculateElevationWeight(data.elevation, data.actual),
       weather_weight: calculateWeatherWeight(data.weather, data.actual),
       season_weight: calculateSeasonWeight(data.actual),
-      zone_bias: data.actual ? 1 : -1, // Simple bias adjustment
-      update_timestamp: new Date().toISOString()
+      zone_bias: data.actual ? 1 : -1,
+      last_updated: new Date().toISOString()
     };
 
-    // Check if weights exist for this zone
-    const zoneHash = generateZoneHash(data.lat, data.lon);
-    const existingWeights = await getExistingWeights(zoneHash);
-
     if (existingWeights) {
-      // Update existing weights
-      await updateExistingWeights(existingWeights.id, weights);
+      await updateExistingWeights(client, existingWeights.id, weights);
     } else {
-      // Create new weights
-      await createNewWeights(zoneHash, weights, data);
+      await createNewWeights(client, zoneHash, weights, data);
     }
 
     console.log('ML weights updated for zone:', zoneHash);
@@ -257,19 +202,15 @@ async function updateMLWeights(data) {
   }
 }
 
-// Calculate elevation weight adjustment
 function calculateElevationWeight(elevation, found) {
   if (!elevation) return 0;
-  
-  // Mushrooms typically prefer 200-1500m
   const optimal = elevation >= 200 && elevation <= 1500;
   
-  if (found && optimal) return 0.1; // Increase weight for optimal elevation
-  if (!found && !optimal) return 0.1; // Increase weight against non-optimal
-  return -0.05; // Decrease weight if prediction was wrong
+  if (found && optimal) return 0.1;
+  if (!found && !optimal) return 0.1;
+  return -0.05;
 }
 
-// Calculate weather weight adjustment
 function calculateWeatherWeight(weather, found) {
   if (!weather) return 0;
   
@@ -281,45 +222,25 @@ function calculateWeatherWeight(weather, found) {
   return -0.05;
 }
 
-// Calculate season weight adjustment
 function calculateSeasonWeight(found) {
   const season = getCurrentSeason();
   
-  // Autumn is best season for mushrooms
   if (season === 'Autunno') {
     return found ? 0.15 : -0.1;
   }
   
-  // Spring is also good
   if (season === 'Primavera') {
     return found ? 0.1 : -0.05;
   }
   
-  // Summer and winter are less favorable
   return found ? 0.05 : 0.05;
 }
 
-// Get existing ML weights for zone
-async function getExistingWeights(zoneHash) {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'ml_weights';
-  
+async function getExistingWeights(client, zoneHash) {
   try {
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula={Zone_Hash}='${zoneHash}'&maxRecords=1`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable query error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.records?.[0] || null;
+    const query = `SELECT * FROM ml_weights WHERE zone_hash = $1 LIMIT 1`;
+    const result = await client.query(query, [zoneHash]);
+    return result.rows[0] || null;
 
   } catch (error) {
     console.error('Error getting existing weights:', error);
@@ -327,83 +248,52 @@ async function getExistingWeights(zoneHash) {
   }
 }
 
-// Update existing ML weights
-async function updateExistingWeights(recordId, newWeights) {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'ml_weights';
-  
+async function updateExistingWeights(client, recordId, newWeights) {
   try {
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`;
+    const query = `
+      UPDATE ml_weights 
+      SET elevation_weight = $2, weather_weight = $3, season_weight = $4,
+          zone_bias = $5, last_updated = $6, sample_count = sample_count + 1
+      WHERE id = $1
+    `;
     
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fields: {
-          'Elevation_Weight': newWeights.elevation_weight,
-          'Weather_Weight': newWeights.weather_weight,
-          'Season_Weight': newWeights.season_weight,
-          'Zone_Bias': newWeights.zone_bias,
-          'Last_Updated': newWeights.update_timestamp
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable update error: ${response.status}`);
-    }
-
-    return await response.json();
+    await client.query(query, [
+      recordId,
+      newWeights.elevation_weight,
+      newWeights.weather_weight,
+      newWeights.season_weight,
+      newWeights.zone_bias,
+      newWeights.last_updated
+    ]);
 
   } catch (error) {
     console.error('Error updating weights:', error);
-    return null;
   }
 }
 
-// Create new ML weights for zone
-async function createNewWeights(zoneHash, weights, data) {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'ml_weights';
-  
+async function createNewWeights(client, zoneHash, weights, data) {
   try {
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+    const query = `
+      INSERT INTO ml_weights (
+        zone_hash, latitude, longitude, elevation_weight,
+        weather_weight, season_weight, zone_bias, sample_count,
+        created_at, last_updated
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, $9)
+    `;
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fields: {
-          'Zone_Hash': zoneHash,
-          'Latitudine': data.lat,
-          'Longitudine': data.lon,
-          'Elevation_Weight': weights.elevation_weight,
-          'Weather_Weight': weights.weather_weight,
-          'Season_Weight': weights.season_weight,
-          'Zone_Bias': weights.zone_bias,
-          'Sample_Count': 1,
-          'Created': weights.update_timestamp,
-          'Last_Updated': weights.update_timestamp
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable create error: ${response.status}`);
-    }
-
-    return await response.json();
+    await client.query(query, [
+      zoneHash,
+      data.lat,
+      data.lon,
+      weights.elevation_weight,
+      weights.weather_weight,
+      weights.season_weight,
+      weights.zone_bias,
+      weights.last_updated,
+      weights.last_updated
+    ]);
 
   } catch (error) {
     console.error('Error creating weights:', error);
-    return null;
   }
 }

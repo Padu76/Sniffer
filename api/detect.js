@@ -1,6 +1,12 @@
-// /api/detect.js
+// /api/detect.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // CORS per ESP32
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,6 +19,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const client = await pool.connect();
+
   try {
     const { 
       device_id,
@@ -21,15 +29,13 @@ export default async function handler(req, res) {
       model_id
     } = req.body;
 
-    // Validazione
     if (!device_id || !sensor_data || !target_type) {
       return res.status(400).json({ 
         error: 'device_id, sensor_data e target_type sono richiesti' 
       });
     }
 
-    // Carica modello trained per questo target
-    const model = await loadTrainedModel(device_id, target_type, model_id);
+    const model = await loadTrainedModel(client, device_id, target_type, model_id);
     
     if (!model) {
       return res.status(404).json({ 
@@ -38,36 +44,35 @@ export default async function handler(req, res) {
       });
     }
 
-    // Analisi AI dei dati sensore
     const detection = analyzeWithModel(sensor_data, model);
 
-    // Salva risultato detection su Airtable
-    const detectionRecord = {
-      device_id: device_id,
-      model_id: model.id,
-      target_type: target_type,
-      timestamp: new Date().toISOString(),
-      
-      // Dati sensore
-      gas_resistance: sensor_data.gas_resistance,
-      temperature: sensor_data.temperature,
-      humidity: sensor_data.humidity,
-      pressure: sensor_data.pressure,
-      voc_index: sensor_data.voc_index,
-      
-      // Risultati detection
-      probability: detection.probability,
-      confidence: detection.confidence,
-      detected: detection.detected,
-      similarity_score: detection.similarity,
-      
-      // Raw data
-      raw_sensor_data: JSON.stringify(sensor_data),
-      analysis_details: JSON.stringify(detection.details)
-    };
+    // Save detection result
+    const insertDetectionQuery = `
+      INSERT INTO detections (
+        device_id, model_id, target_type, timestamp,
+        gas_resistance, temperature, humidity, pressure, voc_index,
+        probability, confidence, detected, similarity_score,
+        raw_sensor_data, analysis_details
+      ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      RETURNING *
+    `;
 
-    // Salva su Airtable
-    await saveDetectionResult(detectionRecord);
+    await client.query(insertDetectionQuery, [
+      device_id,
+      model.id,
+      target_type,
+      sensor_data.gas_resistance,
+      sensor_data.temperature,
+      sensor_data.humidity,
+      sensor_data.pressure,
+      sensor_data.voc_index,
+      detection.probability,
+      detection.confidence,
+      detection.detected,
+      detection.similarity,
+      JSON.stringify(sensor_data),
+      JSON.stringify(detection.details)
+    ]);
 
     return res.status(200).json({
       success: true,
@@ -97,41 +102,42 @@ export default async function handler(req, res) {
       error: 'Errore analisi detection',
       details: error.message 
     });
+  } finally {
+    client.release();
   }
 }
 
-// Carica modello addestrato da Airtable
-async function loadTrainedModel(device_id, target_type, model_id = null) {
+async function loadTrainedModel(client, device_id, target_type, model_id = null) {
   try {
-    let filterFormula = `AND({device_id}='${device_id}', {target_type}='${target_type}', {is_active}=1)`;
+    let query, params;
     
     if (model_id) {
-      filterFormula = `{model_id}='${model_id}'`;
+      query = 'SELECT * FROM trained_models WHERE id = $1';
+      params = [model_id];
+    } else {
+      query = `
+        SELECT * FROM trained_models 
+        WHERE device_id = $1 AND target_type = $2 AND is_active = true
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `;
+      params = [device_id, target_type];
     }
 
-    const response = await fetch(
-      `https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/trained_models?filterByFormula=${encodeURIComponent(filterFormula)}&maxRecords=1&sort[0][field]=created_at&sort[0][direction]=desc`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`
-        }
-      }
-    );
-
-    const result = await response.json();
+    const result = await client.query(query, params);
     
-    if (result.records.length === 0) return null;
+    if (result.rows.length === 0) return null;
     
-    const record = result.records[0];
+    const record = result.rows[0];
     return {
       id: record.id,
-      signature: JSON.parse(record.fields.model_signature),
-      baseline: JSON.parse(record.fields.baseline_stats),
-      positive: JSON.parse(record.fields.positive_stats),
-      negative: JSON.parse(record.fields.negative_stats),
-      threshold: record.fields.confidence_threshold,
-      accuracy_score: record.fields.accuracy_score,
-      created_at: record.fields.created_at
+      signature: record.model_signature,
+      baseline: record.baseline_stats,
+      positive: record.positive_stats,
+      negative: record.negative_stats,
+      threshold: parseFloat(record.confidence_threshold),
+      accuracy_score: record.accuracy_score,
+      created_at: record.created_at
     };
     
   } catch (error) {
@@ -140,29 +146,19 @@ async function loadTrainedModel(device_id, target_type, model_id = null) {
   }
 }
 
-// Algoritmo di analisi con modello trained
 function analyzeWithModel(sensorData, model) {
   try {
-    // Calcola similarità con signature positive
     const positiveSimilarity = calculateSimilarity(sensorData, model.positive);
-    
-    // Calcola distanza da baseline
     const baselineDistance = calculateDistance(sensorData, model.baseline);
-    
-    // Calcola distanza da negative samples
     const negativeSimilarity = calculateSimilarity(sensorData, model.negative);
     
-    // Formula combinata per probabilità
     const probability = Math.max(0, Math.min(1, 
       (positiveSimilarity * 0.6) + 
       (baselineDistance * 0.3) + 
       ((1 - negativeSimilarity) * 0.1)
     ));
     
-    // Confidence basata su consistency dei valori
     const confidence = calculateConfidence(sensorData, model);
-    
-    // Detected se supera threshold
     const detected = probability > model.threshold && confidence > 0.5;
     
     return {
@@ -184,7 +180,6 @@ function analyzeWithModel(sensorData, model) {
   }
 }
 
-// Helper functions per calcoli AI
 function calculateSimilarity(data1, data2) {
   const features = ['gas_resistance', 'temperature', 'humidity', 'voc_index'];
   let similarity = 0;
@@ -204,7 +199,6 @@ function calculateDistance(data1, data2) {
 }
 
 function calculateConfidence(sensorData, model) {
-  // Confidence basata su stabilità dei valori
   const gasStability = sensorData.gas_resistance > 1000 ? 0.8 : 0.4;
   const vocConsistency = sensorData.voc_index > 0 ? 0.9 : 0.3;
   
@@ -213,27 +207,10 @@ function calculateConfidence(sensorData, model) {
 
 function getDetectionMessage(detection, target_type) {
   if (detection.detected) {
-    return `🎯 ${target_type} rilevato! Probabilità: ${Math.round(detection.probability * 100)}%`;
+    return `${target_type} rilevato! Probabilità: ${Math.round(detection.probability * 100)}%`;
   } else if (detection.probability > 0.3) {
-    return `🤔 Possibile presenza di ${target_type} (${Math.round(detection.probability * 100)}%)`;
+    return `Possibile presenza di ${target_type} (${Math.round(detection.probability * 100)}%)`;
   } else {
-    return `❌ ${target_type} non rilevato`;
-  }
-}
-
-async function saveDetectionResult(record) {
-  try {
-    await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/detections`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        records: [{ fields: record }]
-      })
-    });
-  } catch (error) {
-    console.log('Errore salvataggio detection:', error);
+    return `${target_type} non rilevato`;
   }
 }

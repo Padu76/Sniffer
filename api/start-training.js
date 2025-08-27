@@ -1,6 +1,12 @@
-// /api/start-training.js
+// /api/start-training.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // CORS per ESP32
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,6 +19,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const client = await pool.connect();
+
   try {
     const { 
       device_id, 
@@ -21,66 +29,43 @@ export default async function handler(req, res) {
       session_id 
     } = req.body;
 
-    // Validazione
     if (!device_id || !target_type) {
       return res.status(400).json({ 
         error: 'device_id e target_type sono richiesti' 
       });
     }
 
-    // Genera session_id se non presente
     const trainingSessionId = session_id || `train_${Date.now()}`;
 
-    // Crea record training session su Airtable
-    const trainingSession = {
-      device_id: device_id,
-      session_id: trainingSessionId,
-      target_type: target_type,
-      training_name: training_name || `Training ${target_type}`,
-      status: 'in_progress',
-      start_time: new Date().toISOString(),
-      
-      // Contatori samples
-      baseline_samples: 0,
-      positive_samples: 0,
-      negative_samples: 0,
-      
-      // Target samples richiesti
-      baseline_target: 10,
-      positive_target: 15,
-      negative_target: 10,
-      
-      // Fase attuale
-      current_phase: 'baseline', // baseline -> positive -> negative -> completed
-      phase_instructions: getPhaseInstructions('baseline', target_type)
-    };
+    const insertQuery = `
+      INSERT INTO training_sessions (
+        device_id, session_id, target_type, training_name, status, start_time,
+        baseline_samples, positive_samples, negative_samples,
+        baseline_target, positive_target, negative_target,
+        current_phase, phase_instructions, created_at
+      ) VALUES ($1, $2, $3, $4, 'in_progress', NOW(), 0, 0, 0, 10, 15, 10, 'baseline', $5, NOW())
+      RETURNING *
+    `;
 
-    const airtableResponse = await fetch(`https://api.airtable.com/v0/${process.env.VITE_AIRTABLE_BASE_ID}/training_sessions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.VITE_AIRTABLE_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        records: [{
-          fields: trainingSession
-        }]
-      })
-    });
+    const phaseInstructions = getPhaseInstructions('baseline', target_type);
+    
+    const result = await client.query(insertQuery, [
+      device_id,
+      trainingSessionId,
+      target_type,
+      training_name || `Training ${target_type}`,
+      JSON.stringify(phaseInstructions)
+    ]);
 
-    if (!airtableResponse.ok) {
-      throw new Error('Errore creazione training session');
-    }
-
-    const result = await airtableResponse.json();
+    const trainingSession = result.rows[0];
 
     return res.status(200).json({
       success: true,
       message: 'Training session avviata',
       session_id: trainingSessionId,
-      record_id: result.records[0].id,
+      record_id: trainingSession.id,
       current_phase: 'baseline',
-      instructions: getPhaseInstructions('baseline', target_type),
+      instructions: phaseInstructions,
       progress: {
         baseline: 0,
         positive: 0,  
@@ -99,26 +84,27 @@ export default async function handler(req, res) {
       error: 'Errore avvio training',
       details: error.message 
     });
+  } finally {
+    client.release();
   }
 }
 
-// Helper per istruzioni fasi training
 function getPhaseInstructions(phase, target_type) {
   const instructions = {
     baseline: {
-      title: '🌬️ FASE 1: Calibrazione Aria Pulita',
+      title: 'FASE 1: Calibrazione Aria Pulita',
       description: `Tieni la sonda in aria pulita per 10 campioni di baseline`,
       action: 'Posiziona la sonda lontano da odori forti'
     },
     positive: {
-      title: `🎯 FASE 2: Campioni Target (${target_type})`,
+      title: `FASE 2: Campioni Target (${target_type})`,
       description: `Avvicina la sonda a ${target_type} freschi per 15 campioni`,
       action: `Posiziona vicino a ${target_type} di qualità`
     },
     negative: {
-      title: '❌ FASE 3: Campioni Negativi',
+      title: 'FASE 3: Campioni Negativi',
       description: `Testa altri odori simili ma diversi dal target per 10 campioni`,
-      action: 'Prova terreno, foglie, altri funghi non-target'
+      action: 'Prova terreno, foglie, altri odori non-target'
     }
   };
   
