@@ -1,18 +1,26 @@
+// /api/dashboard.js - Neon PostgreSQL Version
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 export default async function handler(req, res) {
-  // Set CORS headers
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const client = await pool.connect();
 
   try {
     const { type } = req.query;
@@ -24,131 +32,130 @@ export default async function handler(req, res) {
     let data;
     switch (type) {
       case 'feedback':
-        data = await getFeedbackData();
+        data = await getFeedbackData(client);
         break;
       case 'scansioni':
-        data = await getScanData();
+        data = await getScanData(client);
         break;
       case 'weights':
-        data = await getMLWeights();
+        data = await getMLWeights(client);
         break;
       case 'analytics':
-        data = await getAnalytics();
+        data = await getAnalytics(client);
         break;
       default:
         return res.status(400).json({ error: 'Invalid type parameter' });
     }
 
-    res.status(200).json(data);
+    return res.status(200).json(data);
 
   } catch (error) {
     console.error('Dashboard API error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Errore nel recupero dati dashboard',
       details: error.message
     });
+  } finally {
+    client.release();
   }
 }
 
-// Get feedback data from Airtable
-async function getFeedbackData() {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'feedback';
-  
-  if (!token) {
-    console.warn('Airtable token not configured, returning mock data');
-    return { records: generateMockFeedbackData() };
-  }
-
+// Get feedback data from Neon
+async function getFeedbackData(client) {
   try {
-    // Get all feedback records, sorted by timestamp desc
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}?sort[0][field]=Timestamp&sort[0][direction]=desc&maxRecords=200`;
+    const query = `
+      SELECT * FROM feedback 
+      ORDER BY timestamp DESC 
+      LIMIT 200
+    `;
     
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
+    const result = await client.query(query);
+    console.log(`Retrieved ${result.rows.length} feedback records from Neon`);
+    
+    // Transform to match frontend expectations
+    const records = result.rows.map(row => ({
+      fields: {
+        Scan_ID: row.scan_id,
+        Found_Mushrooms: row.found_mushrooms,
+        Predicted_Probability: row.predicted_probability,
+        Latitudine: parseFloat(row.latitude),
+        Longitudine: parseFloat(row.longitude),
+        Altitudine: row.elevation,
+        Accuracy: row.accuracy,
+        Zone_Hash: row.zone_hash,
+        Season: row.season,
+        Weather_Category: row.weather_category,
+        Timestamp: row.timestamp
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log(`Retrieved ${data.records?.length || 0} feedback records`);
+    }));
     
-    return data;
+    return { records };
 
   } catch (error) {
     console.error('Error fetching feedback data:', error);
-    // Return mock data as fallback
     return { records: generateMockFeedbackData() };
   }
 }
 
-// Get scan data from Airtable
-async function getScanData() {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'scansioni';
-  
-  if (!token) {
-    console.warn('Airtable token not configured, returning mock data');
-    return { records: generateMockScanData() };
-  }
-
+// Get scan data from Neon
+async function getScanData(client) {
   try {
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}?sort[0][field]=Timestamp&sort[0][direction]=desc&maxRecords=200`;
+    const query = `
+      SELECT * FROM scansioni 
+      ORDER BY timestamp DESC 
+      LIMIT 200
+    `;
     
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
+    const result = await client.query(query);
+    console.log(`Retrieved ${result.rows.length} scan records from Neon`);
+    
+    const records = result.rows.map(row => ({
+      fields: {
+        Target: row.target,
+        Latitudine: parseFloat(row.latitude),
+        Longitudine: parseFloat(row.longitude),
+        Altitudine: row.elevation,
+        Meteo: row.weather_description,
+        Risultato_AI: row.ai_result,
+        Score_Fungo: row.ai_score,
+        VOC: parseFloat(row.voc_value),
+        Umidita: parseFloat(row.humidity_value),
+        Temperature: parseFloat(row.temperature),
+        Timestamp: row.timestamp
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log(`Retrieved ${data.records?.length || 0} scan records`);
+    }));
     
-    return data;
+    return { records };
 
   } catch (error) {
     console.error('Error fetching scan data:', error);
-    return { records: generateMockScanData() };
+    return { records: [] };
   }
 }
 
-// Get ML weights data
-async function getMLWeights() {
-  const token = process.env.VITE_AIRTABLE_TOKEN;
-  const baseId = 'app70ymOnJLKk19B9';
-  const tableName = 'ml_weights';
-  
-  if (!token) {
-    return { records: [] };
-  }
-
+// Get ML weights data from Neon
+async function getMLWeights(client) {
   try {
-    const url = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+    const query = `SELECT * FROM ml_weights ORDER BY last_updated DESC`;
     
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
+    const result = await client.query(query);
+    console.log(`Retrieved ${result.rows.length} ML weight records from Neon`);
+    
+    const records = result.rows.map(row => ({
+      fields: {
+        Zone_Hash: row.zone_hash,
+        Latitudine: parseFloat(row.latitude),
+        Longitudine: parseFloat(row.longitude),
+        Elevation_Weight: parseFloat(row.elevation_weight),
+        Weather_Weight: parseFloat(row.weather_weight),
+        Season_Weight: parseFloat(row.season_weight),
+        Zone_Bias: parseFloat(row.zone_bias),
+        Sample_Count: row.sample_count,
+        Last_Updated: row.last_updated
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log(`Retrieved ${data.records?.length || 0} ML weight records`);
+    }));
     
-    return data;
+    return { records };
 
   } catch (error) {
     console.error('Error fetching ML weights:', error);
@@ -157,12 +164,12 @@ async function getMLWeights() {
 }
 
 // Get computed analytics
-async function getAnalytics() {
+async function getAnalytics(client) {
   try {
     const [feedbackData, scanData, weightsData] = await Promise.all([
-      getFeedbackData(),
-      getScanData(),
-      getMLWeights()
+      getFeedbackData(client),
+      getScanData(client), 
+      getMLWeights(client)
     ]);
 
     const feedback = feedbackData.records || [];
@@ -206,7 +213,7 @@ async function getAnalytics() {
   }
 }
 
-// Analytics calculation functions
+// Analytics calculation functions (unchanged from original)
 function calculateOverallAccuracy(feedback) {
   if (feedback.length === 0) return 0;
   const accurate = feedback.filter(r => r.fields?.Accuracy === 100).length;
@@ -220,7 +227,6 @@ function calculateSuccessRate(feedback) {
 }
 
 function calculateAccuracyTrend(feedback) {
-  // Group by day and calculate daily accuracy
   const dailyData = feedback.reduce((acc, record) => {
     const date = new Date(record.fields?.Timestamp).toDateString();
     if (!acc[date]) acc[date] = { total: 0, accurate: 0 };
@@ -268,13 +274,12 @@ function calculateWeatherPerformance(feedback) {
 function calculateElevationPerformance(feedback) {
   const elevationRanges = {
     '0-200m': [0, 200],
-    '200-800m': [200, 800],
+    '200-800m': [200, 800], 
     '800-1500m': [800, 1500],
     '1500m+': [1500, 10000]
   };
 
   const elevationData = {};
-  
   Object.keys(elevationRanges).forEach(range => {
     elevationData[range] = { total: 0, found: 0 };
   });
@@ -325,7 +330,7 @@ function getTopPerformingZones(feedback) {
   }, {});
 
   return Object.entries(zoneData)
-    .filter(([zone, data]) => data.total >= 3) // At least 3 samples
+    .filter(([zone, data]) => data.total >= 3)
     .map(([zone, data]) => ({
       zone,
       successRate: Math.round((data.found / data.total) * 100),
@@ -391,13 +396,13 @@ function getLastModelUpdate(weights) {
   return dates.length > 0 ? new Date(Math.max(...dates)).toISOString() : null;
 }
 
-// Mock data generators
+// Mock data generator
 function generateMockFeedbackData() {
   const mockData = [];
   const weatherTypes = ['Rainy', 'Cloudy', 'Sunny', 'Foggy'];
   const seasons = ['Primavera', 'Estate', 'Autunno', 'Inverno'];
   
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 20; i++) {
     const found = Math.random() > 0.6;
     const predicted = Math.round(Math.random() * 100);
     const accuracy = (found && predicted > 50) || (!found && predicted <= 50) ? 100 : 0;
@@ -420,9 +425,4 @@ function generateMockFeedbackData() {
   }
   
   return mockData;
-}
-
-function generateMockScanData() {
-  // Similar structure to feedback but with different fields
-  return [];
 }
