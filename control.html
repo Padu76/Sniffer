@@ -35,6 +35,25 @@
             margin-bottom: 10px;
         }
 
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
         .device-status {
             background: white;
             border-radius: 15px;
@@ -147,6 +166,19 @@
         .target-btn:hover {
             border-color: #667eea;
             background: #f0f4ff;
+        }
+
+        .domestic-targets {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .domestic-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
         }
 
         .control-buttons {
@@ -278,6 +310,34 @@
             border: 1px solid #f5c6cb;
         }
 
+        .training-progress {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .training-progress.active {
+            display: block;
+        }
+
+        .progress-bar {
+            background: #f0f0f0;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            height: 100%;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -290,13 +350,22 @@
             .target-selector {
                 justify-content: center;
             }
+
+            .back-btn {
+                position: relative;
+                top: auto;
+                left: auto;
+                margin-bottom: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <button class="back-btn" onclick="window.location.href='index.html'">← Indietro</button>
+
         <div class="header">
-            <h1>🍄 Sniffer Control</h1>
+            <h1>Sniffer Control</h1>
             <p>Controllo Remoto Sonda BME688</p>
         </div>
 
@@ -304,7 +373,7 @@
 
         <!-- Status Sonda -->
         <div class="device-status">
-            <h2>📡 Stato Sonda</h2>
+            <h2>Stato Sonda</h2>
             <div class="status-indicator">
                 <div id="statusDot" class="status-dot"></div>
                 <span id="statusText">Connessione...</span>
@@ -332,40 +401,62 @@
 
         <!-- Pannello Controllo -->
         <div class="control-panel">
-            <h2>🎮 Controllo Sonda</h2>
+            <h2>Controllo Sonda</h2>
             
             <!-- Selezione Target -->
             <div class="control-section">
-                <h3>🎯 Target da Rilevare</h3>
+                <h3>Target da Rilevare</h3>
                 <div class="target-selector">
-                    <button class="target-btn active" data-target="funghi_porcini">🍄 Porcini</button>
-                    <button class="target-btn" data-target="funghi_ovoli">🟠 Ovoli</button>
-                    <button class="target-btn" data-target="tartufi">⚫ Tartufi</button>
-                    <button class="target-btn" data-target="erbe_aromatiche">🌿 Erbe</button>
-                    <button class="target-btn" data-target="custom">⚙️ Custom</button>
+                    <button class="target-btn active" data-target="funghi_porcini">Porcini</button>
+                    <button class="target-btn" data-target="funghi_ovoli">Ovoli</button>
+                    <button class="target-btn" data-target="tartufi">Tartufi</button>
+                    <button class="target-btn" data-target="erbe_aromatiche">Erbe</button>
+                    <button class="target-btn" data-target="custom">Custom</button>
+                </div>
+                
+                <!-- Domestic Targets -->
+                <div class="domestic-targets">
+                    <div class="domestic-label">Target Test Domestici:</div>
+                    <div class="target-selector">
+                        <button class="target-btn" data-target="caffe">Caffè</button>
+                        <button class="target-btn" data-target="limone">Limone</button>
+                        <button class="target-btn" data-target="alcool">Alcool</button>
+                        <button class="target-btn" data-target="aceto">Aceto</button>
+                        <button class="target-btn" data-target="vaniglia">Vaniglia</button>
+                    </div>
                 </div>
             </div>
 
             <!-- Controlli Principali -->
             <div class="control-section">
-                <h3>🔧 Comandi</h3>
+                <h3>Comandi</h3>
                 <div class="control-buttons">
                     <button id="btnTraining" class="control-btn btn-training">
-                        🎓 Avvia Training
+                        Avvia Training
                     </button>
                     <button id="btnScanning" class="control-btn btn-scanning">
-                        🔍 Avvia Scanning
+                        Avvia Scanning
                     </button>
                     <button id="btnStopAll" class="control-btn btn-stop">
-                        ⏹️ Stop Tutto
+                        Stop Tutto
                     </button>
+                </div>
+                
+                <!-- Training Progress -->
+                <div id="trainingProgress" class="training-progress">
+                    <div><strong>Training in corso:</strong> <span id="trainingTarget">--</span></div>
+                    <div>Fase: <span id="trainingPhase">--</span></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div>Campioni: <span id="sampleCount">0</span> / <span id="sampleTarget">0</span></div>
                 </div>
             </div>
         </div>
 
         <!-- Dati Sensore in Tempo Reale -->
         <div class="sensor-data">
-            <h2>📊 Dati Sensore</h2>
+            <h2>Dati Sensore</h2>
             <div class="sensor-grid">
                 <div class="sensor-card">
                     <div class="sensor-label">Gas Resistance</div>
@@ -395,20 +486,28 @@
     </div>
 
     <script>
-        // Configurazione
-        const API_BASE = 'https://sniffer-beta.vercel.app/api';
-        const DEVICE_ID = 'sniffer_001';
+        // Dynamic API Configuration
+        const API_CONFIG = {
+            BASE_URL: window.location.origin,
+            DEVICE_ID: 'sniffer_001',
+            ENDPOINTS: {
+                deviceStatus: '/api/device-status',
+                deviceCommand: '/api/device-command',
+                commandExecuted: '/api/command-executed'
+            }
+        };
         
         // Variabili globali
         let currentTarget = 'funghi_porcini';
         let deviceStatus = null;
         let isLoading = false;
+        let statusPollingInterval = null;
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             startStatusPolling();
-            showMessage('🚀 Sistema inizializzato', 'success');
+            showMessage('Sistema inizializzato', 'success');
         });
 
         // Event Listeners
@@ -424,6 +523,13 @@
             document.getElementById('btnTraining').addEventListener('click', startTraining);
             document.getElementById('btnScanning').addEventListener('click', startScanning);
             document.getElementById('btnStopAll').addEventListener('click', stopAll);
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', () => {
+                if (statusPollingInterval) {
+                    clearInterval(statusPollingInterval);
+                }
+            });
         }
 
         // Selezione target
@@ -434,9 +540,13 @@
             document.querySelectorAll('.target-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector(`[data-target="${target}"]`).classList.add('active');
             
-            showMessage(`🎯 Target selezionato: ${getTargetName(target)}`, 'success');
+            const targetBtn = document.querySelector(`[data-target="${target}"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+            
+            showMessage(`Target selezionato: ${getTargetName(target)}`, 'success');
         }
 
         function getTargetName(target) {
@@ -445,7 +555,13 @@
                 'funghi_ovoli': 'Funghi Ovoli', 
                 'tartufi': 'Tartufi',
                 'erbe_aromatiche': 'Erbe Aromatiche',
-                'custom': 'Custom'
+                'custom': 'Custom',
+                // Domestic targets
+                'caffe': 'Caffè Espresso',
+                'limone': 'Limone Fresco',
+                'alcool': 'Alcool Isopropilico',
+                'aceto': 'Aceto Bianco',
+                'vaniglia': 'Vaniglia Liquida'
             };
             return names[target] || target;
         }
@@ -460,27 +576,30 @@
             setLoading(true);
             
             try {
-                const response = await fetch(`${API_BASE}/device-command`, {
+                const response = await fetch(API_CONFIG.ENDPOINTS.deviceCommand, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        device_id: DEVICE_ID,
-                        action: 'start_training',
-                        target_type: currentTarget
+                        device_id: API_CONFIG.DEVICE_ID,
+                        command: 'start_training',
+                        parameters: {
+                            target_type: currentTarget
+                        }
                     })
                 });
 
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage('🎓 Comando training inviato alla sonda', 'success');
+                    showMessage('Comando training inviato alla sonda', 'success');
+                    updateTrainingProgress();
                 } else {
-                    showMessage('❌ Errore invio comando: ' + result.error, 'error');
+                    showMessage('Errore invio comando: ' + result.error, 'error');
                 }
             } catch (error) {
-                showMessage('❌ Errore connessione: ' + error.message, 'error');
+                showMessage('Errore connessione: ' + error.message, 'error');
             }
             
             setLoading(false);
@@ -492,27 +611,29 @@
             setLoading(true);
             
             try {
-                const response = await fetch(`${API_BASE}/device-command`, {
+                const response = await fetch(API_CONFIG.ENDPOINTS.deviceCommand, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        device_id: DEVICE_ID,
-                        action: 'start_scanning',
-                        target_type: currentTarget
+                        device_id: API_CONFIG.DEVICE_ID,
+                        command: 'start_scanning',
+                        parameters: {
+                            target_type: currentTarget
+                        }
                     })
                 });
 
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage('🔍 Comando scanning inviato alla sonda', 'success');
+                    showMessage('Comando scanning inviato alla sonda', 'success');
                 } else {
-                    showMessage('❌ Errore invio comando: ' + result.error, 'error');
+                    showMessage('Errore invio comando: ' + result.error, 'error');
                 }
             } catch (error) {
-                showMessage('❌ Errore connessione: ' + error.message, 'error');
+                showMessage('Errore connessione: ' + error.message, 'error');
             }
             
             setLoading(false);
@@ -524,29 +645,31 @@
             setLoading(true);
             
             try {
-                const stopTraining = fetch(`${API_BASE}/device-command`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: DEVICE_ID,
-                        action: 'stop_training'
-                    })
-                });
+                const stopCommands = [
+                    {
+                        device_id: API_CONFIG.DEVICE_ID,
+                        command: 'stop_training'
+                    },
+                    {
+                        device_id: API_CONFIG.DEVICE_ID,
+                        command: 'stop_scanning'
+                    }
+                ];
 
-                const stopScanning = fetch(`${API_BASE}/device-command`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: DEVICE_ID,
-                        action: 'stop_scanning'
+                const promises = stopCommands.map(cmd => 
+                    fetch(API_CONFIG.ENDPOINTS.deviceCommand, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(cmd)
                     })
-                });
+                );
 
-                await Promise.all([stopTraining, stopScanning]);
-                showMessage('⏹️ Comandi stop inviati alla sonda', 'success');
+                await Promise.all(promises);
+                showMessage('Comandi stop inviati alla sonda', 'success');
+                hideTrainingProgress();
                 
             } catch (error) {
-                showMessage('❌ Errore invio stop: ' + error.message, 'error');
+                showMessage('Errore invio stop: ' + error.message, 'error');
             }
             
             setLoading(false);
@@ -555,11 +678,13 @@
         // Status polling
         async function getDeviceStatus() {
             try {
-                const response = await fetch(`${API_BASE}/device-status?device_id=${DEVICE_ID}`);
-                const result = await response.json();
+                const response = await fetch(`${API_CONFIG.ENDPOINTS.deviceStatus}?device_id=${API_CONFIG.DEVICE_ID}`);
                 
-                if (result.success) {
-                    return result.status;
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        return result.status;
+                    }
                 }
                 return null;
             } catch (error) {
@@ -569,29 +694,31 @@
         }
 
         function updateStatusUI(status) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
             if (!status) {
-                document.getElementById('statusDot').className = 'status-dot';
-                document.getElementById('statusText').textContent = 'Sonda Offline';
+                statusDot.className = 'status-dot';
+                statusText.textContent = 'Sonda Offline';
                 return;
             }
 
             deviceStatus = status;
-            
-            // Status indicator
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
             
             let statusClass = 'status-dot';
             let statusMessage = 'Sonda Online';
             
             if (status.training_active) {
                 statusClass += ' training';
-                statusMessage = `Training in corso (${status.current_target})`;
+                statusMessage = `Training in corso (${getTargetName(status.current_target)})`;
+                updateTrainingProgress(status);
             } else if (status.scanning_active) {
                 statusClass += ' scanning';  
-                statusMessage = `Scanning attivo (${status.current_target})`;
+                statusMessage = `Scanning attivo (${getTargetName(status.current_target)})`;
+                hideTrainingProgress();
             } else {
                 statusClass += ' online';
+                hideTrainingProgress();
             }
             
             statusDot.className = statusClass;
@@ -616,7 +743,7 @@
                 document.getElementById('humidity').textContent = 
                     Math.round(status.sensor_data.humidity || 0);
                 document.getElementById('vocIndex').textContent = 
-                    Math.round(status.sensor_data.voc_index || 0);
+                    Math.round(status.sensor_data.voc_equivalent || 0);
                     
                 document.getElementById('sensorLoading').style.display = 'none';
             }
@@ -630,27 +757,44 @@
             const btnScanning = document.getElementById('btnScanning');
             const btnStopAll = document.getElementById('btnStopAll');
             
-            if (status.training_active) {
-                btnTraining.disabled = true;
-                btnScanning.disabled = true;
-                btnStopAll.disabled = false;
-            } else if (status.scanning_active) {
+            if (status && (status.training_active || status.scanning_active)) {
                 btnTraining.disabled = true;
                 btnScanning.disabled = true;
                 btnStopAll.disabled = false;
             } else {
-                btnTraining.disabled = false;
-                btnScanning.disabled = false;
+                btnTraining.disabled = isLoading;
+                btnScanning.disabled = isLoading;
                 btnStopAll.disabled = true;
             }
+        }
+
+        function updateTrainingProgress(status = null) {
+            const progressElement = document.getElementById('trainingProgress');
+            
+            if (status && status.training_active) {
+                progressElement.classList.add('active');
+                
+                document.getElementById('trainingTarget').textContent = getTargetName(status.current_target);
+                document.getElementById('trainingPhase').textContent = `Fase ${status.training_phase || 1}`;
+                document.getElementById('sampleCount').textContent = status.sample_count || 0;
+                document.getElementById('sampleTarget').textContent = status.sample_target || 10;
+                
+                const progress = ((status.sample_count || 0) / (status.sample_target || 10)) * 100;
+                document.getElementById('progressFill').style.width = `${Math.min(progress, 100)}%`;
+            }
+        }
+
+        function hideTrainingProgress() {
+            const progressElement = document.getElementById('trainingProgress');
+            progressElement.classList.remove('active');
         }
 
         function startStatusPolling() {
             // Poll iniziale
             pollStatus();
             
-            // Poll ogni 5 secondi
-            setInterval(pollStatus, 5000);
+            // Poll ogni 3 secondi
+            statusPollingInterval = setInterval(pollStatus, 3000);
         }
 
         async function pollStatus() {
@@ -677,15 +821,12 @@
             
             setTimeout(() => {
                 messageEl.style.display = 'none';
-            }, 3000);
+            }, 4000);
         }
 
         function setLoading(loading) {
             isLoading = loading;
-            const buttons = document.querySelectorAll('.control-btn');
-            buttons.forEach(btn => {
-                btn.disabled = loading;
-            });
+            updateButtonStates(deviceStatus);
         }
     </script>
 </body>
