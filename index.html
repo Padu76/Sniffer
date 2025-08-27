@@ -13,11 +13,12 @@
             <div class="nav-brand">
                 <span class="nav-logo">🔬</span>
                 <span class="nav-title">Sniffer</span>
+                <span class="nav-version">v2.0 Neon</span>
             </div>
             <div class="nav-links">
                 <a href="control.html" class="nav-link nav-control">🎮 Controllo Sonda</a>
                 <a href="training.html" class="nav-link">🎯 Training</a>
-                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
             </div>
         </div>
     </nav>
@@ -130,40 +131,97 @@
         <!-- Target Selection -->
         <div class="target-section">
             <h2 class="section-title">🎯 Cosa Cerchi?</h2>
-            <div class="target-grid">
-                <div class="target-card active" data-target="funghi">
-                    <div class="target-icon">🍄</div>
-                    <div class="target-info">
-                        <h3>Funghi</h3>
-                        <p>Porcini, finferli, chiodini</p>
-                        <span class="target-badge">Analisi Visiva</span>
+            
+            <!-- Professional Targets -->
+            <div class="target-category">
+                <h3 class="category-title">🌲 Target Professionali</h3>
+                <div class="target-grid">
+                    <div class="target-card active" data-target="funghi">
+                        <div class="target-icon">🍄</div>
+                        <div class="target-info">
+                            <h3>Funghi</h3>
+                            <p>Porcini, finferli, chiodini</p>
+                            <span class="target-badge">Analisi Visiva</span>
+                        </div>
+                    </div>
+                    
+                    <div class="target-card" data-target="tartufi">
+                        <div class="target-icon">⚫</div>
+                        <div class="target-info">
+                            <h3>Tartufi</h3>
+                            <p>Bianchi, neri, scorzone</p>
+                            <span class="target-badge">Sonda Richiesta</span>
+                        </div>
+                    </div>
+                    
+                    <div class="target-card" data-target="erbe">
+                        <div class="target-icon">🌿</div>
+                        <div class="target-info">
+                            <h3>Erbe Medicinali</h3>
+                            <p>Spontanee commestibili</p>
+                            <span class="target-badge">Analisi Visiva</span>
+                        </div>
+                    </div>
+                    
+                    <div class="target-card" data-target="custom">
+                        <div class="target-icon">⚙️</div>
+                        <div class="target-info">
+                            <h3>Rilevamento Custom</h3>
+                            <p>Odore personalizzato</p>
+                            <span class="target-badge">Sonda Richiesta</span>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="target-card" data-target="tartufi">
-                    <div class="target-icon">⚫</div>
-                    <div class="target-info">
-                        <h3>Tartufi</h3>
-                        <p>Bianchi, neri, scorzone</p>
-                        <span class="target-badge">Sonda Richiesta</span>
+            </div>
+
+            <!-- Domestic Test Targets -->
+            <div class="target-category">
+                <h3 class="category-title">🏠 Target Test Domestici</h3>
+                <p class="category-description">Odori semplici per testare e calibrare la sonda a casa</p>
+                <div class="target-grid domestic-grid">
+                    <div class="target-card domestic-card" data-target="caffe">
+                        <div class="target-icon">☕</div>
+                        <div class="target-info">
+                            <h3>Caffè Espresso</h3>
+                            <p>Aroma intenso e distintivo</p>
+                            <span class="target-badge domestic-badge">Test Casa</span>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="target-card" data-target="erbe">
-                    <div class="target-icon">🌿</div>
-                    <div class="target-info">
-                        <h3>Erbe Medicinali</h3>
-                        <p>Spontanee commestibili</p>
-                        <span class="target-badge">Analisi Visiva</span>
+                    
+                    <div class="target-card domestic-card" data-target="limone">
+                        <div class="target-icon">🍋</div>
+                        <div class="target-info">
+                            <h3>Limone Fresco</h3>
+                            <p>Agrumi volatili naturali</p>
+                            <span class="target-badge domestic-badge">Test Casa</span>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="target-card" data-target="custom">
-                    <div class="target-icon">⚙️</div>
-                    <div class="target-info">
-                        <h3>Rilevamento Custom</h3>
-                        <p>Odore personalizzato</p>
-                        <span class="target-badge">Sonda Richiesta</span>
+                    
+                    <div class="target-card domestic-card" data-target="alcool">
+                        <div class="target-icon">🧪</div>
+                        <div class="target-info">
+                            <h3>Alcool Isopropilico</h3>
+                            <p>Composto chimico puro</p>
+                            <span class="target-badge domestic-badge">Test Casa</span>
+                        </div>
+                    </div>
+                    
+                    <div class="target-card domestic-card" data-target="aceto">
+                        <div class="target-icon">🥗</div>
+                        <div class="target-info">
+                            <h3>Aceto Bianco</h3>
+                            <p>Acido acetico concentrato</p>
+                            <span class="target-badge domestic-badge">Test Casa</span>
+                        </div>
+                    </div>
+                    
+                    <div class="target-card domestic-card" data-target="vaniglia">
+                        <div class="target-icon">🌟</div>
+                        <div class="target-info">
+                            <h3>Vaniglia Liquida</h3>
+                            <p>Estratto aromatico dolce</p>
+                            <span class="target-badge domestic-badge">Test Casa</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,6 +275,10 @@
             <div class="method-content" id="hardware-method">
                 <div class="method-description">
                     <p>🔬 <strong>Sensori BME688</strong> rilevano direttamente composti chimici volatili (VOC) specifici del target tramite sonda fisica calibrata.</p>
+                    <div class="hardware-info-box">
+                        <h4>🏠 Modalità Test Casa</h4>
+                        <p>Per i target domestici, avvicina la sonda all'odore selezionato e usa il controllo remoto per addestrare il sistema.</p>
+                    </div>
                 </div>
                 
                 <div class="hardware-status">
@@ -358,26 +420,31 @@
         </div>
     </div>
 
-    <!-- IMPORTANTE: Mock Intelligence deve essere caricato PRIMA di script.js -->
+    <!-- Scripts -->
     <script src="mock-intelligence.js"></script>
     <script src="script.js"></script>
     
     <script>
-        // Funzioni quick actions per controllo hardware
+        // Dynamic API Configuration
+        const QUICK_API_CONFIG = {
+            BASE_URL: window.location.origin,
+            DEVICE_ID: 'sniffer_001'
+        };
+
+        // Quick command functions
         async function quickCommand(action) {
-            const API_BASE = 'https://sniffer-beta.vercel.app/api';
-            const DEVICE_ID = 'sniffer_001';
-            
             try {
-                const response = await fetch(`${API_BASE}/device-command`, {
+                const response = await fetch(`${QUICK_API_CONFIG.BASE_URL}/api/device-command`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        device_id: DEVICE_ID,
-                        action: action,
-                        target_type: 'funghi_porcini'
+                        device_id: QUICK_API_CONFIG.DEVICE_ID,
+                        command: action,
+                        parameters: {
+                            target_type: window.SnifferApp?.currentTarget || 'funghi'
+                        }
                     })
                 });
 
@@ -394,6 +461,13 @@
         }
 
         function showQuickNotification(message, type) {
+            // Check if notification function exists in main script
+            if (typeof showNotification === 'function') {
+                showNotification(message, type);
+                return;
+            }
+
+            // Fallback notification
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
@@ -406,27 +480,28 @@
                 z-index: 1000;
                 animation: slideIn 0.3s ease;
                 background: ${type === 'success' ? '#2ecc71' : '#e74c3c'};
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             `;
             notification.textContent = message;
             
             document.body.appendChild(notification);
             
             setTimeout(() => {
-                notification.remove();
+                if (notification.parentNode) {
+                    notification.remove();
+                }
             }, 3000);
         }
 
-        // Verifica status sonda ogni 30 secondi (allineato con control.html)
+        // Hardware status check function
         async function checkHardwareStatus() {
             try {
-                const response = await fetch('https://sniffer-beta.vercel.app/api/device-status?device_id=sniffer_001');
+                const response = await fetch(`${QUICK_API_CONFIG.BASE_URL}/api/device-status?device_id=${QUICK_API_CONFIG.DEVICE_ID}`);
                 const result = await response.json();
                 
                 const statusDot = document.getElementById('previewStatusDot');
                 const statusText = document.getElementById('previewStatusText');
                 const hardwareStatus = document.getElementById('hardwareStatus');
-                
-                console.log('Homepage status check:', result); // Debug
                 
                 if (response.ok && result.success && result.status) {
                     // Sonda online e funzionante
@@ -434,7 +509,7 @@
                     statusText.textContent = 'Sonda Online';
                     hardwareStatus.textContent = '🟢';
                     
-                    // Aggiorna anche il sensor widget se disponibile
+                    // Aggiorna sensor widget se disponibile
                     const sensorStatus = document.getElementById('sensorStatus');
                     if (sensorStatus) {
                         sensorStatus.textContent = 'Connessa';
@@ -462,144 +537,100 @@
                 statusDot.style.background = '#e74c3c';
                 statusText.textContent = 'Errore Connessione';
                 hardwareStatus.textContent = '🔴';
-                
-                // Aggiorna anche il sensor widget
-                const sensorStatus = document.getElementById('sensorStatus');
-                if (sensorStatus) {
-                    sensorStatus.textContent = 'Disconnessa';
-                    sensorStatus.style.color = '#e74c3c';
-                }
             }
         }
 
-        // Avvia check status
+        // Initialize hardware status checking
         document.addEventListener('DOMContentLoaded', function() {
             checkHardwareStatus();
-            setInterval(checkHardwareStatus, 30000); // Ogni 30 secondi
+            setInterval(checkHardwareStatus, 30000); // Every 30 seconds
+        });
+
+        // About link handler
+        document.getElementById('aboutLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Sniffer v2.0 - Sistema IoT per rilevamento intelligente di odori\n\nDatabase: Neon PostgreSQL\nHardware: ESP32 + BME688\nAI: Google Vision + Claude\n\nPer info: control.html');
         });
     </script>
     
     <style>
-        /* Stili aggiuntivi per le nuove sezioni */
-        .nav-control {
+        /* Additional styles for domestic targets */
+        .nav-version {
+            font-size: 0.7em;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white !important;
-            border-radius: 20px;
-            padding: 8px 16px !important;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
             margin-left: 10px;
         }
 
-        .btn-control {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            margin-left: 15px;
+        .target-category {
+            margin-bottom: 40px;
         }
 
-        .hardware-stat {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .category-title {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .category-description {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .domestic-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .domestic-card {
+            border: 2px solid #e3f2fd;
+            background: linear-gradient(135deg, #f8fbff 0%, #e3f2fd 100%);
+        }
+
+        .domestic-card:hover {
+            border-color: #2196f3;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15);
+        }
+
+        .domestic-card.active {
+            border-color: #2196f3;
+            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
             color: white;
         }
 
-        .sensor-actions {
-            margin-top: 10px;
-            text-align: center;
+        .domestic-badge {
+            background: #2196f3;
+            color: white;
         }
 
-        .hardware-control-section {
-            margin: 40px 0;
-            padding: 30px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        .domestic-card.active .domestic-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
         }
 
-        .hardware-preview {
-            display: grid;
-            gap: 20px;
+        .hardware-info-box {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
         }
 
-        .hardware-preview-card {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 25px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            border: 2px solid #eee;
+        .hardware-info-box h4 {
+            margin: 0 0 8px 0;
+            color: #1976d2;
         }
 
-        .hardware-preview-icon {
-            font-size: 3em;
-            opacity: 0.8;
-        }
-
-        .hardware-preview-info {
-            flex: 1;
-        }
-
-        .hardware-preview-info h3 {
-            margin: 0 0 10px 0;
-            color: #333;
-        }
-
-        .hardware-preview-info p {
-            margin: 0 0 15px 0;
-            color: #666;
-        }
-
-        .hardware-preview-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .hardware-info-box p {
+            margin: 0;
             font-size: 0.9em;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #e74c3c;
-        }
-
-        .hardware-quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .quick-action-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding: 20px 15px;
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .quick-action-btn:hover {
-            border-color: #667eea;
-            background: #f0f4ff;
-            transform: translateY(-2px);
-        }
-
-        .quick-action-icon {
-            font-size: 1.5em;
-        }
-
-        .quick-action-text {
-            font-size: 0.9em;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .quick-link-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white !important;
+            color: #424242;
         }
 
         @keyframes slideIn {
@@ -614,18 +645,16 @@
         }
 
         @media (max-width: 768px) {
-            .hardware-preview-card {
-                flex-direction: column;
-                text-align: center;
+            .domestic-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
             
-            .hero-actions {
-                flex-direction: column;
-                gap: 10px;
+            .target-category {
+                margin-bottom: 30px;
             }
             
-            .btn-control {
-                margin-left: 0;
+            .category-title {
+                font-size: 1.1em;
             }
         }
     </style>
