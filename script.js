@@ -1,4 +1,4 @@
-// === SNIFFER COMPLETE SCRIPT ===
+// === SNIFFER COMPLETE SCRIPT - Neon Optimized ===
 // Universal detection platform with hardware integration
 
 // Global variables
@@ -9,6 +9,19 @@ let currentMethod = 'ai';
 let hardware = null;
 let analysisInProgress = false;
 let mockIntelligence = null;
+
+// API Configuration
+const API_CONFIG = {
+    BASE_URL: window.location.origin,
+    DEVICE_ID: 'sniffer_001',
+    ENDPOINTS: {
+        analyze: '/api/analyze',
+        feedback: '/api/feedback', 
+        dashboard: '/api/dashboard',
+        deviceStatus: '/api/device-status',
+        deviceCommand: '/api/device-command'
+    }
+};
 
 // Hardware Integration Layer
 class SnifferHardware {
@@ -31,12 +44,10 @@ class SnifferHardware {
         try {
             console.log('Attempting Bluetooth connection...');
             
-            // Check if Web Bluetooth is available
             if (!navigator.bluetooth) {
                 throw new Error('Web Bluetooth non supportato');
             }
 
-            // Request device
             this.device = await navigator.bluetooth.requestDevice({
                 filters: [
                     { name: 'Sniffer' },
@@ -46,15 +57,11 @@ class SnifferHardware {
             });
 
             console.log('Device selected:', this.device.name);
-
-            // Connect to GATT server
             this.server = await this.device.gatt.connect();
             console.log('Connected to GATT server');
 
             this.isConnected = true;
             this.updateUI();
-            
-            // Start sensor simulation for demo
             this.startSensorSimulation();
             
             return true;
@@ -65,7 +72,6 @@ class SnifferHardware {
     }
 
     startSensorSimulation() {
-        // Simulate BME688 readings for demo
         setInterval(() => {
             if (this.isConnected) {
                 this.sensorData = {
@@ -81,13 +87,11 @@ class SnifferHardware {
     }
 
     updateSensorDisplay() {
-        // Update sensor widget
         const sensorReading = document.querySelector('.reading-value');
         if (sensorReading) {
             sensorReading.textContent = this.sensorData.voc;
         }
 
-        // Update hardware readings if visible
         const vocReading = document.getElementById('vocReading');
         const gasReading = document.getElementById('gasReading');
         const tempReading = document.getElementById('tempReading');
@@ -125,7 +129,9 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log('Sniffer app initializing...');
     
     // Initialize mock intelligence system
-    mockIntelligence = new MockIntelligence();
+    if (typeof MockIntelligence !== 'undefined') {
+        mockIntelligence = new MockIntelligence();
+    }
     
     // Initialize hardware
     hardware = new SnifferHardware();
@@ -144,25 +150,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Setup all event listeners
 function setupEventListeners() {
-    // Target selection
     setupTargetSelection();
-    
-    // Method tabs
     setupMethodTabs();
-    
-    // Photo upload
     setupPhotoUpload();
-    
-    // Hardware connection
     setupHardwareControls();
-    
-    // Quick action buttons
     setupQuickActions();
-    
-    // Analysis button
     setupAnalysisButton();
-    
-    // Feedback buttons
     setupFeedbackButtons();
 }
 
@@ -186,7 +179,10 @@ function selectTarget(target) {
     document.querySelectorAll('.target-card').forEach(card => {
         card.classList.remove('active');
     });
-    document.querySelector(`[data-target="${target}"]`).classList.add('active');
+    const targetCard = document.querySelector(`[data-target="${target}"]`);
+    if (targetCard) {
+        targetCard.classList.add('active');
+    }
     
     // Update target mode badge
     const targetMode = document.getElementById('targetMode');
@@ -197,8 +193,6 @@ function selectTarget(target) {
     
     // Update method availability
     updateMethodAvailability(target);
-    
-    // Update analyze button
     updateAnalyzeButton();
 }
 
@@ -207,7 +201,14 @@ function getTargetInfo(target) {
         'funghi': { name: 'Funghi', icon: '🍄', requiresHardware: false },
         'tartufi': { name: 'Tartufi', icon: '⚫', requiresHardware: true },
         'erbe': { name: 'Erbe Medicinali', icon: '🌿', requiresHardware: false },
-        'custom': { name: 'Custom', icon: '⚙️', requiresHardware: true }
+        'custom': { name: 'Custom', icon: '⚙️', requiresHardware: true },
+        
+        // New domestic targets
+        'caffe': { name: 'Caffè', icon: '☕', requiresHardware: true },
+        'limone': { name: 'Limone', icon: '🍋', requiresHardware: true },
+        'alcool': { name: 'Alcool', icon: '🧪', requiresHardware: true },
+        'aceto': { name: 'Aceto', icon: '🥗', requiresHardware: true },
+        'vaniglia': { name: 'Vaniglia', icon: '🌟', requiresHardware: true }
     };
     return targets[target] || targets['funghi'];
 }
@@ -223,7 +224,6 @@ function updateMethodAvailability(target) {
         } else {
             hardwareTab.style.opacity = '0.5';
             hardwareTab.style.pointerEvents = 'none';
-            // Switch to AI method if hardware was selected
             if (currentMethod === 'hardware') {
                 selectMethod('ai');
             }
@@ -251,15 +251,20 @@ function selectMethod(method) {
     document.querySelectorAll('.method-tab').forEach(tab => {
         tab.classList.remove('active');
     });
-    document.querySelector(`[data-method="${method}"]`).classList.add('active');
+    const methodTab = document.querySelector(`[data-method="${method}"]`);
+    if (methodTab) {
+        methodTab.classList.add('active');
+    }
     
     // Update content visibility
     document.querySelectorAll('.method-content').forEach(content => {
         content.classList.remove('active');
     });
-    document.getElementById(`${method}-method`).classList.add('active');
+    const methodContent = document.getElementById(`${method}-method`);
+    if (methodContent) {
+        methodContent.classList.add('active');
+    }
     
-    // Update analyze button
     updateAnalyzeButton();
 }
 
@@ -272,41 +277,40 @@ function setupPhotoUpload() {
     const removePhoto = document.getElementById('removePhoto');
     const retakePhoto = document.getElementById('retakePhoto');
 
-    // Camera button
     if (cameraBtn) {
         cameraBtn.addEventListener('click', () => {
-            photoInput.setAttribute('capture', 'environment');
-            photoInput.click();
+            if (photoInput) {
+                photoInput.setAttribute('capture', 'environment');
+                photoInput.click();
+            }
         });
     }
 
-    // Gallery button  
     if (galleryBtn) {
         galleryBtn.addEventListener('click', () => {
-            photoInput.removeAttribute('capture');
-            photoInput.click();
+            if (photoInput) {
+                photoInput.removeAttribute('capture');
+                photoInput.click();
+            }
         });
     }
 
-    // File input change
     if (photoInput) {
         photoInput.addEventListener('change', handlePhotoSelect);
     }
 
-    // Drag and drop
     if (uploadArea) {
         uploadArea.addEventListener('dragover', handleDragOver);
         uploadArea.addEventListener('dragleave', handleDragLeave);
         uploadArea.addEventListener('drop', handlePhotoDrop);
-        uploadArea.addEventListener('click', () => galleryBtn?.click());
+        uploadArea.addEventListener('click', () => galleryBtn && galleryBtn.click());
     }
 
-    // Remove/retake buttons
     if (removePhoto) {
         removePhoto.addEventListener('click', removeCurrentPhoto);
     }
     if (retakePhoto) {
-        retakePhoto.addEventListener('click', () => cameraBtn?.click());
+        retakePhoto.addEventListener('click', () => cameraBtn && cameraBtn.click());
     }
 }
 
@@ -393,13 +397,11 @@ async function connectHardware() {
         await hardware.connect();
         btn.textContent = '✅ Connesso';
         
-        // Show hardware readings
         const hardwareReadings = document.getElementById('hardwareReadings');
         if (hardwareReadings) {
             hardwareReadings.style.display = 'block';
         }
         
-        // Enable calibrate button
         const calibrateBtn = document.getElementById('calibrateBtn');
         if (calibrateBtn) {
             calibrateBtn.disabled = false;
@@ -412,7 +414,6 @@ async function connectHardware() {
         btn.textContent = '❌ Riprova';
         btn.disabled = false;
         
-        // Show error message
         showNotification('Errore connessione hardware. Verifica che la sonda sia accesa.', 'error');
     }
 }
@@ -427,7 +428,6 @@ function setupQuickActions() {
 
     if (startAnalysisBtn) {
         startAnalysisBtn.addEventListener('click', () => {
-            // Scroll to target selection
             const targetSection = document.querySelector('.target-section');
             if (targetSection) {
                 targetSection.scrollIntoView({ behavior: 'smooth' });
@@ -452,7 +452,6 @@ function updateAnalyzeButton() {
     let canAnalyze = false;
     let reasonText = '';
 
-    // Check requirements based on method
     if (currentMethod === 'ai') {
         canAnalyze = currentPosition !== null;
         reasonText = canAnalyze ? 
@@ -532,32 +531,19 @@ async function callAnalysisAPI(data) {
     try {
         console.log('Attempting real API call...');
         
-        const formData = new FormData();
-        
-        // Add all data to form
-        Object.keys(data).forEach(key => {
-            if (data[key] !== null && data[key] !== undefined) {
-                if (key === 'photo' && data[key]) {
-                    // Convert base64 to blob for photo
-                    fetch(data[key])
-                        .then(response => response.blob())
-                        .then(blob => formData.append('photo', blob, 'terrain.jpg'));
-                } else if (key === 'sensorData') {
-                    formData.append(key, JSON.stringify(data[key]));
-                } else {
-                    formData.append(key, data[key]);
-                }
-            }
-        });
-        
-        const response = await fetch('/api/analyze', {
+        // Use new Neon API
+        const response = await fetch(API_CONFIG.ENDPOINTS.analyze, {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
         });
         
         if (response.ok) {
             console.log('Real API response received');
-            return await response.json();
+            const result = await response.json();
+            return result;
         } else {
             throw new Error(`API error: ${response.status}`);
         }
@@ -597,11 +583,11 @@ function displayResults(result) {
         // Update score circle gradient
         if (scoreCircle) {
             const percentage = result.probability;
-            const color = percentage >= 70 ? 'var(--success)' : 
-                         percentage >= 40 ? 'var(--warning)' : 'var(--danger)';
+            const color = percentage >= 70 ? '#22c55e' : 
+                         percentage >= 40 ? '#f59e0b' : '#ef4444';
             const degrees = (percentage / 100) * 360;
             
-            scoreCircle.style.background = `conic-gradient(${color} ${degrees}deg, var(--border) ${degrees}deg)`;
+            scoreCircle.style.background = `conic-gradient(${color} ${degrees}deg, #e5e7eb ${degrees}deg)`;
         }
     }
     
@@ -639,11 +625,11 @@ async function submitFeedback(found) {
             found: found,
             target: currentTarget,
             timestamp: new Date().toISOString(),
-            latitude: currentPosition?.latitude,
-            longitude: currentPosition?.longitude
+            lat: currentPosition?.latitude,
+            lon: currentPosition?.longitude
         };
         
-        // Save to Airtable
+        // Save to Neon via new API
         await saveFeedback(feedbackData);
         
         // Show confirmation
@@ -662,7 +648,7 @@ async function submitFeedback(found) {
 }
 
 async function saveFeedback(data) {
-    const response = await fetch('/api/feedback', {
+    const response = await fetch(API_CONFIG.ENDPOINTS.feedback, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -739,7 +725,7 @@ async function fetchElevationAndWeather() {
     try {
         console.log('Fetching real elevation and weather data...');
         
-        const response = await fetch('/api/analyze', {
+        const response = await fetch(API_CONFIG.ENDPOINTS.analyze, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -799,13 +785,18 @@ async function fetchElevationAndWeather() {
     }
 }
 
-// Stats loading
+// Stats loading - Updated for Neon
 async function loadStats() {
     try {
-        const response = await fetch('/api/dashboard');
+        const response = await fetch(`${API_CONFIG.ENDPOINTS.dashboard}?type=analytics`);
         if (response.ok) {
             const data = await response.json();
-            updateStatsDisplay(data);
+            const analytics = data.analytics || {};
+            updateStatsDisplay({
+                totalScans: analytics.summary?.totalScans || 0,
+                successRate: analytics.summary?.successRate || 0,
+                activeZones: analytics.summary?.totalZones || 0
+            });
         } else {
             throw new Error('Dashboard API not available');
         }
@@ -888,5 +879,6 @@ window.SnifferApp = {
     hardware,
     selectTarget,
     selectMethod,
-    performAnalysis
+    performAnalysis,
+    API_CONFIG
 };
