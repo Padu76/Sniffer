@@ -4,312 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sniffer - Rilevatore Intelligente</title>
-    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Header Navigation -->
-    <nav class="main-nav">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <span class="nav-logo">🔬</span>
-                <span class="nav-title">Sniffer</span>
-                <span class="nav-version">v2.0 Neon</span>
-            </div>
-            <div class="nav-links">
-                <a href="control.html" class="nav-link nav-control">🎮 Controllo Sonda</a>
-                <a href="training.html" class="nav-link">🎯 Training</a>
-                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#" style="font-weight: bold;">
+                🐕‍🦺 Sniffer 
+                <small class="badge bg-success ms-2">v2.0 Neon</small>
+            </a>
+            
+            <!-- ESP32 Status Indicator -->
+            <div class="navbar-nav ms-auto">
+                <div id="esp32Status" class="nav-item d-flex align-items-center">
+                    <span id="esp32Indicator" class="badge bg-danger me-2">
+                        <i class="bi bi-cpu"></i> ESP32 Offline
+                    </span>
+                </div>
+                <a class="nav-link" href="#" onclick="showAbout()">
+                    <i class="bi bi-info-circle"></i> Info
+                </a>
             </div>
         </div>
     </nav>
 
-    <div class="container">
-        <!-- Hero Section -->
-        <div class="hero">
-            <div class="hero-content">
-                <div class="hero-main">
-                    <div class="hero-badge">
-                        <span class="target-mode" id="targetMode">🍄 Modalità: Funghi</span>
-                    </div>
-                    <h1 class="hero-title">
-                        Rilevatore <span class="gradient-text">Intelligente</span>
-                    </h1>
-                    <p class="hero-subtitle">
-                        AI ibrida + sensori olfattivi per rilevamento avanzato
-                    </p>
-                    
-                    <!-- Updated CTA with Hardware Control -->
-                    <div class="hero-actions">
-                        <button class="btn btn-primary btn-cta" id="startAnalysisBtn">
-                            🎯 Inizia Analisi
-                        </button>
-                        <button class="btn btn-control btn-cta" onclick="window.location.href='control.html'">
-                            🎮 Controllo Sonda
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Hero Stats -->
-                <div class="hero-stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalScans">--</div>
-                        <div class="stat-label">Scansioni</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="successRate">--</div>
-                        <div class="stat-label">Accuracy</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="activeZones">--</div>
-                        <div class="stat-label">Zone Attive</div>
-                    </div>
-                    <div class="stat-card hardware-stat">
-                        <div class="stat-value" id="hardwareStatus">🔴</div>
-                        <div class="stat-label">Sonda Hardware</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Enhanced Sensor Widget -->
-            <div class="sensor-widget">
-                <div class="sensor-header">
-                    <span class="sensor-icon">🔬</span>
-                    <span class="sensor-title">Sonda BME688</span>
-                    <span class="sensor-status" id="sensorStatus">Disconnessa</span>
-                </div>
-                <div class="sensor-reading" id="sensorReading">
-                    <div class="reading-value">--</div>
-                    <div class="reading-unit">ppm</div>
-                </div>
-                <div class="sensor-led" id="sensorLed"></div>
-                <div class="sensor-actions">
-                    <button class="btn-icon" onclick="window.location.href='control.html'" title="Controllo Remoto">
-                        🎮
-                    </button>
-                </div>
+    <div class="container mt-4">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1 class="display-4">🍄 Rilevatore Intelligente</h1>
+                <p class="lead">Analisi territorio con AI e sensori avanzati</p>
             </div>
         </div>
 
-        <!-- Hardware Control Section -->
-        <div class="hardware-control-section">
-            <h2 class="section-title">🎮 Controllo Hardware</h2>
-            <div class="hardware-preview">
-                <div class="hardware-preview-card">
-                    <div class="hardware-preview-icon">📡</div>
-                    <div class="hardware-preview-info">
-                        <h3>Controllo Remoto Sonda</h3>
-                        <p>Training, scanning e monitoraggio in tempo reale via WiFi</p>
-                        <div class="hardware-preview-status">
-                            <span class="status-dot" id="previewStatusDot"></span>
-                            <span id="previewStatusText">Verifica connessione...</span>
+        <!-- ESP32 Hardware Control Panel -->
+        <div class="row mb-4" id="hardwarePanel">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-cpu"></i> Controllo Hardware ESP32
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- ESP32 Connection -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <button id="connectESP32" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-wifi"></i> Connetti Sonda ESP32
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button id="refreshESP32" class="btn btn-outline-secondary w-100" disabled>
+                                    <i class="bi bi-arrow-clockwise"></i> Aggiorna Status
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="hardware-preview-actions">
-                        <button class="btn btn-primary" onclick="window.location.href='control.html'">
-                            🎮 Apri Controllo
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="hardware-quick-actions">
-                    <button class="quick-action-btn" onclick="quickCommand('start_scanning')">
-                        <span class="quick-action-icon">🔍</span>
-                        <span class="quick-action-text">Quick Scan</span>
-                    </button>
-                    <button class="quick-action-btn" onclick="quickCommand('start_training')">
-                        <span class="quick-action-icon">🎓</span>
-                        <span class="quick-action-text">Quick Training</span>
-                    </button>
-                    <button class="quick-action-btn" onclick="quickCommand('stop_all')">
-                        <span class="quick-action-icon">⏹️</span>
-                        <span class="quick-action-text">Stop All</span>
-                    </button>
-                </div>
-            </div>
-        </div>
 
-        <!-- Target Selection -->
-        <div class="target-section">
-            <h2 class="section-title">🎯 Cosa Cerchi?</h2>
-            
-            <!-- Professional Targets -->
-            <div class="target-category">
-                <h3 class="category-title">🌲 Target Professionali</h3>
-                <div class="target-grid">
-                    <div class="target-card active" data-target="funghi">
-                        <div class="target-icon">🍄</div>
-                        <div class="target-info">
-                            <h3>Funghi</h3>
-                            <p>Porcini, finferli, chiodini</p>
-                            <span class="target-badge">Analisi Visiva</span>
-                        </div>
-                    </div>
-                    
-                    <div class="target-card" data-target="tartufi">
-                        <div class="target-icon">⚫</div>
-                        <div class="target-info">
-                            <h3>Tartufi</h3>
-                            <p>Bianchi, neri, scorzone</p>
-                            <span class="target-badge">Sonda Richiesta</span>
-                        </div>
-                    </div>
-                    
-                    <div class="target-card" data-target="erbe">
-                        <div class="target-icon">🌿</div>
-                        <div class="target-info">
-                            <h3>Erbe Medicinali</h3>
-                            <p>Spontanee commestibili</p>
-                            <span class="target-badge">Analisi Visiva</span>
-                        </div>
-                    </div>
-                    
-                    <div class="target-card" data-target="custom">
-                        <div class="target-icon">⚙️</div>
-                        <div class="target-info">
-                            <h3>Rilevamento Custom</h3>
-                            <p>Odore personalizzato</p>
-                            <span class="target-badge">Sonda Richiesta</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Domestic Test Targets -->
-            <div class="target-category">
-                <h3 class="category-title">🏠 Target Test Domestici</h3>
-                <p class="category-description">Odori semplici per testare e calibrare la sonda a casa</p>
-                <div class="target-grid domestic-grid">
-                    <div class="target-card domestic-card" data-target="caffe">
-                        <div class="target-icon">☕</div>
-                        <div class="target-info">
-                            <h3>Caffè Espresso</h3>
-                            <p>Aroma intenso e distintivo</p>
-                            <span class="target-badge domestic-badge">Test Casa</span>
-                        </div>
-                    </div>
-                    
-                    <div class="target-card domestic-card" data-target="limone">
-                        <div class="target-icon">🍋</div>
-                        <div class="target-info">
-                            <h3>Limone Fresco</h3>
-                            <p>Agrumi volatili naturali</p>
-                            <span class="target-badge domestic-badge">Test Casa</span>
-                        </div>
-                    </div>
-                    
-                    <div class="target-card domestic-card" data-target="alcool">
-                        <div class="target-icon">🧪</div>
-                        <div class="target-info">
-                            <h3>Alcool Isopropilico</h3>
-                            <p>Composto chimico puro</p>
-                            <span class="target-badge domestic-badge">Test Casa</span>
-                        </div>
-                    </div>
-                    
-                    <div class="target-card domestic-card" data-target="aceto">
-                        <div class="target-icon">🥗</div>
-                        <div class="target-info">
-                            <h3>Aceto Bianco</h3>
-                            <p>Acido acetico concentrato</p>
-                            <span class="target-badge domestic-badge">Test Casa</span>
-                        </div>
-                    </div>
-                    
-                    <div class="target-card domestic-card" data-target="vaniglia">
-                        <div class="target-icon">🌟</div>
-                        <div class="target-info">
-                            <h3>Vaniglia Liquida</h3>
-                            <p>Estratto aromatico dolce</p>
-                            <span class="target-badge domestic-badge">Test Casa</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analysis Method -->
-        <div class="method-section">
-            <div class="method-tabs">
-                <button class="method-tab active" data-method="ai">
-                    🧠 Analisi AI Visiva
-                </button>
-                <button class="method-tab" data-method="hardware" id="hardwareTab">
-                    🔬 Rilevamento Hardware
-                </button>
-            </div>
-
-            <!-- AI Visual Analysis -->
-            <div class="method-content active" id="ai-method">
-                <div class="method-description">
-                    <p>📷 <strong>Google Vision + Claude AI</strong> analizzano foto del terreno, coordinate GPS, altitudine e condizioni meteo per identificare aree favorevoli.</p>
-                </div>
-                
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-content">
-                        <div class="upload-icon">📷</div>
-                        <h3>Scatta o Carica Foto del Terreno</h3>
-                        <p>Drag & drop o clicca per selezionare</p>
-                        <div class="upload-buttons">
-                            <button class="btn btn-primary" id="cameraBtn">
-                                📷 Scatta Foto
-                            </button>
-                            <button class="btn btn-secondary" id="galleryBtn">
-                                🖼️ Dalla Galleria
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
-                
-                <div class="photo-preview" id="photoPreview" style="display: none;">
-                    <img id="previewImage" alt="Preview">
-                    <div class="preview-actions">
-                        <button class="btn-icon" id="removePhoto" title="Rimuovi">❌</button>
-                        <button class="btn-icon" id="retakePhoto" title="Rifai">🔄</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Hardware Sensing -->
-            <div class="method-content" id="hardware-method">
-                <div class="method-description">
-                    <p>🔬 <strong>Sensori BME688</strong> rilevano direttamente composti chimici volatili (VOC) specifici del target tramite sonda fisica calibrata.</p>
-                    <div class="hardware-info-box">
-                        <h4>🏠 Modalità Test Casa</h4>
-                        <p>Per i target domestici, avvicina la sonda all'odore selezionato e usa il controllo remoto per addestrare il sistema.</p>
-                    </div>
-                </div>
-                
-                <div class="hardware-status">
-                    <div class="hardware-card">
-                        <div class="hardware-icon">🔬</div>
-                        <h3>Sensori Hardware</h3>
-                        <p>Rilevamento chimico diretto tramite sonda BME688</p>
-                        <div class="hardware-actions">
-                            <button class="btn btn-primary" onclick="window.location.href='control.html'">
-                                🎮 Controllo Completo
-                            </button>
-                            <button class="btn btn-secondary" id="connectHardwareBtn">
-                                📡 Connetti Sonda
-                            </button>
-                            <button class="btn btn-secondary" id="calibrateBtn" disabled>
-                                ⚙️ Calibra
-                            </button>
-                        </div>
-                        <div class="hardware-readings" id="hardwareReadings" style="display: none;">
-                            <div class="reading-grid">
-                                <div class="reading-item">
-                                    <span class="reading-label">VOC:</span>
-                                    <span class="reading-value" id="vocReading">--</span>
+                        <!-- Real-time Sensor Data -->
+                        <div id="sensorDataPanel" class="row mb-3" style="display: none;">
+                            <div class="col-12">
+                                <h6 class="text-muted mb-2">📊 Dati Sensore Real-time</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-2 text-center">
+                                                <small class="text-muted">Temperatura</small>
+                                                <div id="tempValue" class="h5 mb-0">--°C</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-2 text-center">
+                                                <small class="text-muted">Umidità</small>
+                                                <div id="humidityValue" class="h5 mb-0">--%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-2 text-center">
+                                                <small class="text-muted">VOC Index</small>
+                                                <div id="vocValue" class="h5 mb-0">--</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-2 text-center">
+                                                <small class="text-muted">Gas Resistance</small>
+                                                <div id="gasValue" class="h5 mb-0">--Ω</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="reading-item">
-                                    <span class="reading-label">Gas:</span>
-                                    <span class="reading-value" id="gasReading">--</span>
-                                </div>
-                                <div class="reading-item">
-                                    <span class="reading-label">Temp:</span>
-                                    <span class="reading-value" id="tempReading">--</span>
+                            </div>
+                        </div>
+
+                        <!-- ESP32 Remote Commands -->
+                        <div id="esp32Commands" class="row" style="display: none;">
+                            <div class="col-12">
+                                <h6 class="text-muted mb-2">🎛️ Comandi Remoti</h6>
+                                <div class="btn-group w-100" role="group">
+                                    <button id="startScanning" class="btn btn-success btn-sm">
+                                        <i class="bi bi-play-fill"></i> Start
+                                    </button>
+                                    <button id="stopScanning" class="btn btn-warning btn-sm">
+                                        <i class="bi bi-pause-fill"></i> Stop
+                                    </button>
+                                    <button id="calibrateESP32" class="btn btn-info btn-sm">
+                                        <i class="bi bi-gear-fill"></i> Calibra
+                                    </button>
+                                    <button id="resetESP32" class="btn btn-danger btn-sm">
+                                        <i class="bi bi-arrow-clockwise"></i> Reset
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -318,345 +130,433 @@
             </div>
         </div>
 
-        <!-- Environmental Status -->
-        <div class="env-status">
-            <div class="env-grid">
-                <div class="env-card">
-                    <div class="env-icon">📍</div>
-                    <div class="env-info">
-                        <div class="env-label">Posizione</div>
-                        <div class="env-value" id="location">Rilevamento...</div>
+        <!-- Target Selection Cards -->
+        <div class="row mb-4">
+            <!-- Professional Targets -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">🌲 Target Professionali</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="professionalTargets">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 target-card" data-target="funghi_porcini">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-mushroom display-6 text-success"></i>
+                                        <h6 class="card-title mt-2">Funghi Porcini</h6>
+                                        <p class="card-text small">Terreno boschivo, umidità alta</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 target-card" data-target="tartufi">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-gem display-6 text-warning"></i>
+                                        <h6 class="card-title mt-2">Tartufi</h6>
+                                        <p class="card-text small">Radici alberi, calcio elevato</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 target-card" data-target="funghi_cantarelli">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-flower1 display-6 text-info"></i>
+                                        <h6 class="card-title mt-2">Cantarelli</h6>
+                                        <p class="card-text small">Sottobosco, terreno acido</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="env-card">
-                    <div class="env-icon">⛰️</div>
-                    <div class="env-info">
-                        <div class="env-label">Altitudine</div>
-                        <div class="env-value" id="elevation">Caricamento...</div>
+            </div>
+
+            <!-- Domestic Test Targets -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">🏠 Test Domestici</h5>
                     </div>
-                </div>
-                <div class="env-card">
-                    <div class="env-icon">🌤️</div>
-                    <div class="env-info">
-                        <div class="env-label">Meteo</div>
-                        <div class="env-value" id="weather">Caricamento...</div>
+                    <div class="card-body">
+                        <div id="domesticTargets">
+                            <div class="card mb-2 target-card-domestic" data-target="caffe">
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">☕</span>
+                                        <strong>Caffè</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mb-2 target-card-domestic" data-target="limone">
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">🍋</span>
+                                        <strong>Limone</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mb-2 target-card-domestic" data-target="alcool">
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">🍷</span>
+                                        <strong>Alcool</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mb-2 target-card-domestic" data-target="aceto">
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">🥗</span>
+                                        <strong>Aceto</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card target-card-domestic" data-target="vaniglia">
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">🍦</span>
+                                        <strong>Vaniglia</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Analyze Button -->
-        <div class="analyze-section">
-            <button class="btn btn-analyze" id="analyzeBtn" disabled>
-                <span class="btn-text">🧠 Analizza con AI Ibrida</span>
-                <span class="btn-subtitle">Google Vision + Claude AI</span>
-            </button>
-            <div class="analyze-progress" id="analyzeProgress" style="display: none;">
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
-                <div class="progress-text">Analizzando...</div>
-            </div>
+        <!-- Hardware Info Box -->
+        <div id="hardwareInfoBox" class="alert alert-info" role="alert">
+            <h6 class="alert-heading">
+                <i class="bi bi-info-circle"></i> Modalità Test Domestici
+            </h6>
+            <p class="mb-2">Per testare la sonda ESP32 in casa:</p>
+            <ul class="mb-0">
+                <li>Posiziona diversi odori su piccoli contenitori</li>
+                <li>Avvicina la sonda ESP32 a ciascun odore</li>
+                <li>Seleziona il target corrispondente dall'app</li>
+                <li>Osserva i valori VOC e gas resistance in tempo reale</li>
+            </ul>
         </div>
 
-        <!-- Results Section -->
-        <div class="results-section" id="resultsSection" style="display: none;">
-            <div class="results-header">
-                <h2>📊 Risultati Analisi</h2>
-                <div class="results-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="window.open('dashboard.html', '_blank')">
-                        📊 Dashboard
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-grid gap-2">
+                    <button id="startAnalysis" class="btn btn-success btn-lg" disabled>
+                        <i class="bi bi-play-circle-fill"></i> Inizia Analisi Completa
                     </button>
-                </div>
-            </div>
-            
-            <div class="results-grid">
-                <div class="result-card score-card">
-                    <div class="score-circle" id="scoreCircle">
-                        <div class="score-value" id="scoreValue">--</div>
-                        <div class="score-label">Probabilità</div>
+                    <div class="btn-group mt-2" role="group">
+                        <button id="quickScan" class="btn btn-outline-primary">
+                            <i class="bi bi-camera-fill"></i> Scan Rapido
+                        </button>
+                        <button id="gotoControl" class="btn btn-outline-secondary">
+                            <i class="bi bi-sliders"></i> Controlli Avanzati
+                        </button>
+                        <button id="gotoDashboard" class="btn btn-outline-info">
+                            <i class="bi bi-bar-chart-fill"></i> Dashboard
+                        </button>
                     </div>
-                </div>
-                
-                <div class="result-card info-card">
-                    <h3>🔍 Analisi Completa</h3>
-                    <div class="result-details" id="resultDetails">
-                        <p>In attesa di analisi...</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="feedback-section" id="feedbackSection">
-                <h3>🎯 Hai trovato il target?</h3>
-                <p>Il tuo feedback migliora l'accuracy del sistema</p>
-                <div class="feedback-buttons">
-                    <button class="btn btn-success" id="foundYes">
-                        ✅ Sì, trovato!
-                    </button>
-                    <button class="btn btn-danger" id="foundNo">
-                        ❌ Non trovato
-                    </button>
-                </div>
-                <div class="feedback-confirmation" id="feedbackConfirmation" style="display: none;">
-                    <p>✅ Grazie! Feedback salvato per migliorare l'AI</p>
                 </div>
             </div>
         </div>
 
-        <!-- Updated Quick Links -->
-        <div class="quick-links">
-            <a href="control.html" class="quick-link quick-link-primary">
-                🎮 Controllo Sonda
-            </a>
-            <a href="training.html" class="quick-link">
-                🎯 Training Sensori
-            </a>
-            <a href="dashboard.html" class="quick-link">
-                📊 Analytics
-            </a>
-            <a href="#" class="quick-link" id="aboutLink">
-                ℹ️ Info
-            </a>
+        <!-- Status Display -->
+        <div id="statusDisplay" class="alert alert-secondary" style="display: none;">
+            <div class="d-flex align-items-center">
+                <div id="statusSpinner" class="spinner-border spinner-border-sm me-2" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span id="statusText">Preparazione analisi...</span>
+            </div>
+            <div id="progressBar" class="progress mt-2" style="height: 20px; display: none;">
+                <div id="progressFill" class="progress-bar" role="progressbar" style="width: 0%">
+                    <span id="progressText">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display -->
+        <div id="resultsDisplay" class="card" style="display: none;">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">📊 Risultati Analisi</h5>
+            </div>
+            <div class="card-body" id="resultsContent">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🐕‍🦺 Sniffer v2.0</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Rilevatore Intelligente di Odori</strong></p>
+                    <ul>
+                        <li>✅ Database: Neon PostgreSQL</li>
+                        <li>✅ Hardware: ESP32 + BME688</li>
+                        <li>✅ AI Vision integrata</li>
+                        <li>✅ Target domestici per test</li>
+                        <li>✅ Dashboard analytics real-time</li>
+                    </ul>
+                    <hr>
+                    <p><small class="text-muted">
+                        <i class="bi bi-github"></i> Repository: /sniffer<br>
+                        <i class="bi bi-cloud"></i> Hosting: Vercel<br>
+                        <i class="bi bi-database"></i> Database: Neon PostgreSQL
+                    </small></p>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="mock-intelligence.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
-    
+
     <script>
-        // Dynamic API Configuration
-        const QUICK_API_CONFIG = {
-            BASE_URL: window.location.origin,
-            DEVICE_ID: 'sniffer_001'
-        };
+        // ESP32 Integration JavaScript
+        let esp32Connected = false;
+        let esp32StatusInterval;
+        let sensorDataInterval;
+        let selectedTarget = null;
 
-        // Quick command functions
-        async function quickCommand(action) {
-            try {
-                const response = await fetch(`${QUICK_API_CONFIG.BASE_URL}/api/device-command`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        device_id: QUICK_API_CONFIG.DEVICE_ID,
-                        command: action,
-                        parameters: {
-                            target_type: window.SnifferApp?.currentTarget || 'funghi'
-                        }
-                    })
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showQuickNotification(`✅ Comando ${action} inviato`, 'success');
-                } else {
-                    showQuickNotification(`❌ Errore: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showQuickNotification(`❌ Errore connessione`, 'error');
-            }
-        }
-
-        function showQuickNotification(message, type) {
-            // Check if notification function exists in main script
-            if (typeof showNotification === 'function') {
-                showNotification(message, type);
-                return;
-            }
-
-            // Fallback notification
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 10px;
-                color: white;
-                font-weight: bold;
-                z-index: 1000;
-                animation: slideIn 0.3s ease;
-                background: ${type === 'success' ? '#2ecc71' : '#e74c3c'};
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            `;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, 3000);
-        }
-
-        // Hardware status check function
-        async function checkHardwareStatus() {
-            try {
-                const response = await fetch(`${QUICK_API_CONFIG.BASE_URL}/api/device-status?device_id=${QUICK_API_CONFIG.DEVICE_ID}`);
-                const result = await response.json();
-                
-                const statusDot = document.getElementById('previewStatusDot');
-                const statusText = document.getElementById('previewStatusText');
-                const hardwareStatus = document.getElementById('hardwareStatus');
-                
-                if (response.ok && result.success && result.status) {
-                    // Sonda online e funzionante
-                    statusDot.style.background = '#2ecc71';
-                    statusText.textContent = 'Sonda Online';
-                    hardwareStatus.textContent = '🟢';
-                    
-                    // Aggiorna sensor widget se disponibile
-                    const sensorStatus = document.getElementById('sensorStatus');
-                    if (sensorStatus) {
-                        sensorStatus.textContent = 'Connessa';
-                        sensorStatus.style.color = '#2ecc71';
-                    }
-                    
-                } else if (response.status === 404) {
-                    // Device non trovato/mai connesso
-                    statusDot.style.background = '#f39c12';
-                    statusText.textContent = 'Sonda Mai Connessa';
-                    hardwareStatus.textContent = '🟡';
-                } else {
-                    // Altri errori
-                    statusDot.style.background = '#e74c3c';
-                    statusText.textContent = 'Sonda Offline';
-                    hardwareStatus.textContent = '🔴';
-                }
-            } catch (error) {
-                console.error('Errore check hardware status:', error);
-                
-                const statusDot = document.getElementById('previewStatusDot');
-                const statusText = document.getElementById('previewStatusText');
-                const hardwareStatus = document.getElementById('hardwareStatus');
-                
-                statusDot.style.background = '#e74c3c';
-                statusText.textContent = 'Errore Connessione';
-                hardwareStatus.textContent = '🔴';
-            }
-        }
-
-        // Initialize hardware status checking
+        // Initialize ESP32 UI
         document.addEventListener('DOMContentLoaded', function() {
-            checkHardwareStatus();
-            setInterval(checkHardwareStatus, 30000); // Every 30 seconds
+            initializeESP32UI();
         });
 
-        // About link handler
-        document.getElementById('aboutLink').addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Sniffer v2.0 - Sistema IoT per rilevamento intelligente di odori\n\nDatabase: Neon PostgreSQL\nHardware: ESP32 + BME688\nAI: Google Vision + Claude\n\nPer info: control.html');
+        function initializeESP32UI() {
+            // ESP32 Connection Button
+            document.getElementById('connectESP32').addEventListener('click', connectToESP32);
+            document.getElementById('refreshESP32').addEventListener('click', refreshESP32Status);
+
+            // Remote Command Buttons
+            document.getElementById('startScanning').addEventListener('click', () => sendESP32Command('start_scanning'));
+            document.getElementById('stopScanning').addEventListener('click', () => sendESP32Command('stop_scanning'));
+            document.getElementById('calibrateESP32').addEventListener('click', () => sendESP32Command('calibrate'));
+            document.getElementById('resetESP32').addEventListener('click', () => sendESP32Command('reset'));
+
+            // Target Selection
+            document.querySelectorAll('.target-card, .target-card-domestic').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectTarget(this.dataset.target);
+                });
+            });
+
+            // Check ESP32 status on page load
+            checkESP32Status();
+        }
+
+        async function connectToESP32() {
+            const connectBtn = document.getElementById('connectESP32');
+            connectBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Connessione...';
+            connectBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/hardware-data?action=status&device_id=ESP32_SNIFFER_001');
+                const data = await response.json();
+
+                if (data.success) {
+                    esp32Connected = true;
+                    updateESP32Status(true);
+                    startESP32Monitoring();
+                    
+                    connectBtn.innerHTML = '<i class="bi bi-check-circle"></i> Connesso';
+                    connectBtn.classList.remove('btn-outline-primary');
+                    connectBtn.classList.add('btn-success');
+                    
+                    // Enable other controls
+                    document.getElementById('refreshESP32').disabled = false;
+                    document.getElementById('startAnalysis').disabled = false;
+                    
+                    // Show sensor panels
+                    document.getElementById('sensorDataPanel').style.display = 'block';
+                    document.getElementById('esp32Commands').style.display = 'block';
+                    
+                } else {
+                    throw new Error(data.error || 'Connessione fallita');
+                }
+            } catch (error) {
+                console.error('Errore connessione ESP32:', error);
+                connectBtn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Errore Connessione';
+                connectBtn.classList.add('btn-danger');
+                
+                setTimeout(() => {
+                    connectBtn.innerHTML = '<i class="bi bi-wifi"></i> Riprova Connessione';
+                    connectBtn.classList.remove('btn-danger');
+                    connectBtn.classList.add('btn-outline-primary');
+                    connectBtn.disabled = false;
+                }, 3000);
+            }
+        }
+
+        async function checkESP32Status() {
+            try {
+                const response = await fetch('/api/hardware-data?action=status&device_id=ESP32_SNIFFER_001');
+                const data = await response.json();
+                
+                if (data.success && data.device_status.total_scans > 0) {
+                    // ESP32 is actively sending data
+                    esp32Connected = true;
+                    updateESP32Status(true);
+                    startESP32Monitoring();
+                    
+                    // Update UI automatically
+                    const connectBtn = document.getElementById('connectESP32');
+                    connectBtn.innerHTML = '<i class="bi bi-check-circle"></i> ESP32 Attivo';
+                    connectBtn.classList.remove('btn-outline-primary');
+                    connectBtn.classList.add('btn-success');
+                    connectBtn.disabled = true;
+                    
+                    document.getElementById('refreshESP32').disabled = false;
+                    document.getElementById('startAnalysis').disabled = false;
+                    document.getElementById('sensorDataPanel').style.display = 'block';
+                    document.getElementById('esp32Commands').style.display = 'block';
+                }
+            } catch (error) {
+                console.log('ESP32 not yet active:', error.message);
+            }
+        }
+
+        function updateESP32Status(connected) {
+            const statusIndicator = document.getElementById('esp32Indicator');
+            
+            if (connected) {
+                statusIndicator.className = 'badge bg-success me-2';
+                statusIndicator.innerHTML = '<i class="bi bi-cpu"></i> ESP32 Online';
+            } else {
+                statusIndicator.className = 'badge bg-danger me-2';
+                statusIndicator.innerHTML = '<i class="bi bi-cpu"></i> ESP32 Offline';
+            }
+        }
+
+        function startESP32Monitoring() {
+            // Monitor ESP32 status every 30 seconds
+            esp32StatusInterval = setInterval(refreshESP32Status, 30000);
+            
+            // Get sensor data every 5 seconds
+            sensorDataInterval = setInterval(updateSensorData, 5000);
+        }
+
+        async function refreshESP32Status() {
+            if (!esp32Connected) return;
+            
+            try {
+                const response = await fetch('/api/hardware-data?action=status&device_id=ESP32_SNIFFER_001');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateESP32Status(true);
+                } else {
+                    updateESP32Status(false);
+                    esp32Connected = false;
+                }
+            } catch (error) {
+                console.error('Errore refresh ESP32:', error);
+                updateESP32Status(false);
+                esp32Connected = false;
+            }
+        }
+
+        async function updateSensorData() {
+            if (!esp32Connected) return;
+            
+            try {
+                const response = await fetch('/api/hardware-data');
+                const data = await response.json();
+                
+                if (data.success && data.recent_data.length > 0) {
+                    const latestData = data.recent_data[0];
+                    const sensorData = latestData.sensor_data;
+                    
+                    // Update sensor value displays
+                    document.getElementById('tempValue').textContent = 
+                        sensorData.temperature ? sensorData.temperature.toFixed(1) + '°C' : '--°C';
+                    document.getElementById('humidityValue').textContent = 
+                        sensorData.humidity ? sensorData.humidity.toFixed(1) + '%' : '--%';
+                    document.getElementById('vocValue').textContent = 
+                        sensorData.voc_index ? sensorData.voc_index.toFixed(1) : '--';
+                    document.getElementById('gasValue').textContent = 
+                        sensorData.gas_resistance ? Math.round(sensorData.gas_resistance) + 'Ω' : '--Ω';
+                }
+            } catch (error) {
+                console.error('Errore aggiornamento sensori:', error);
+            }
+        }
+
+        async function sendESP32Command(command) {
+            if (!esp32Connected) return;
+            
+            try {
+                const response = await fetch(`/api/hardware-data?device_id=ESP32_SNIFFER_001&action=command&cmd=${command}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`Comando ${command} inviato con successo`);
+                    
+                    // Visual feedback
+                    const button = document.querySelector(`[onclick*="${command}"]`);
+                    if (button) {
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<i class="bi bi-check"></i> Inviato';
+                        button.disabled = true;
+                        
+                        setTimeout(() => {
+                            button.innerHTML = originalText;
+                            button.disabled = false;
+                        }, 2000);
+                    }
+                } else {
+                    console.error('Errore invio comando:', data.error);
+                }
+            } catch (error) {
+                console.error('Errore comando ESP32:', error);
+            }
+        }
+
+        function selectTarget(target) {
+            selectedTarget = target;
+            
+            // Remove previous selections
+            document.querySelectorAll('.target-card, .target-card-domestic').forEach(card => {
+                card.classList.remove('border-success');
+                card.style.backgroundColor = '';
+            });
+            
+            // Highlight selected target
+            const selectedCard = document.querySelector(`[data-target="${target}"]`);
+            selectedCard.classList.add('border-success');
+            selectedCard.style.backgroundColor = '#e8f5e8';
+            
+            console.log('Target selezionato:', target);
+        }
+
+        function showAbout() {
+            const modal = new bootstrap.Modal(document.getElementById('aboutModal'));
+            modal.show();
+        }
+
+        // Navigation functions
+        document.getElementById('gotoControl').addEventListener('click', () => {
+            window.location.href = 'control.html';
+        });
+
+        document.getElementById('gotoDashboard').addEventListener('click', () => {
+            window.location.href = 'dashboard.html';
+        });
+
+        // Cleanup intervals when page unloads
+        window.addEventListener('beforeunload', function() {
+            if (esp32StatusInterval) clearInterval(esp32StatusInterval);
+            if (sensorDataInterval) clearInterval(sensorDataInterval);
         });
     </script>
-    
-    <style>
-        /* Additional styles for domestic targets */
-        .nav-version {
-            font-size: 0.7em;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 10px;
-        }
-
-        .target-category {
-            margin-bottom: 40px;
-        }
-
-        .category-title {
-            font-size: 1.3em;
-            margin-bottom: 10px;
-            color: #333;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 8px;
-        }
-
-        .category-description {
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 20px;
-            font-style: italic;
-        }
-
-        .domestic-grid {
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        }
-
-        .domestic-card {
-            border: 2px solid #e3f2fd;
-            background: linear-gradient(135deg, #f8fbff 0%, #e3f2fd 100%);
-        }
-
-        .domestic-card:hover {
-            border-color: #2196f3;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15);
-        }
-
-        .domestic-card.active {
-            border-color: #2196f3;
-            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-            color: white;
-        }
-
-        .domestic-badge {
-            background: #2196f3;
-            color: white;
-        }
-
-        .domestic-card.active .domestic-badge {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-
-        .hardware-info-box {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .hardware-info-box h4 {
-            margin: 0 0 8px 0;
-            color: #1976d2;
-        }
-
-        .hardware-info-box p {
-            margin: 0;
-            font-size: 0.9em;
-            color: #424242;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .domestic-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .target-category {
-                margin-bottom: 30px;
-            }
-            
-            .category-title {
-                font-size: 1.1em;
-            }
-        }
-    </style>
 </body>
 </html>
